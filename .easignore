@@ -1,0 +1,32 @@
+# What EAS should not upload.
+#
+# Without this file EAS falls back to .gitignore, which ignores the
+# whole /android folder. That folder is the real native project here
+# and carries the gradle settings, so it has to go up. Only the parts
+# that are machine specific or regenerated are excluded.
+
+node_modules/
+
+# Points at the Android SDK on this laptop. The build machine has its
+# own, and a path that does not exist there fails the build.
+android/local.properties
+
+# Build output and caches, all regenerated remotely
+android/build/
+android/app/build/
+android/.gradle/
+android/.cxx/
+ios/build/
+ios/Pods/
+.expo/
+.gradle/
+dist/
+web-build/
+
+# Local env and editor files
+.env*.local
+.vscode/
+.idea/
+*.log
+*.tsbuildinfo
+.DS_Store

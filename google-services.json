@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "798495106324",
+    "project_id": "hrms-ics-cdd08",
+    "storage_bucket": "hrms-ics-cdd08.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:798495106324:android:05403dfdde423a773a0e01",
+        "android_client_info": {
+          "package_name": "com.ics.hrms"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC4UJh3i5BRebVOVijuhpkUxUbQ8vVkpX4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
