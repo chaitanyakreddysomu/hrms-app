@@ -386,7 +386,9 @@ export default function PillTabBar({
     pageX: number
   ) => {
     /*
-     * Before long press.
+     * Before long press: a finger that
+     * moves away cancels it, the same
+     * as lifting off would.
      */
 
     if (!longPressed.current) {
@@ -403,129 +405,11 @@ export default function PillTabBar({
       return;
     }
 
-    if (
-      !dragging.current ||
-      slotWidth <= 0
-    ) {
-      return;
-    }
-
     /*
-     * Screen X → bar X
+     * After long press: the tab is
+     * already picked. Dragging no
+     * longer moves it to another one.
      */
-
-    const localX =
-      pageX -
-      barScreenX.current;
-
-    /*
-     * Keep inside bar.
-     */
-
-    const clampedX = Math.max(
-      BAR_PADDING,
-      Math.min(
-        barWidth - BAR_PADDING,
-        localX
-      )
-    );
-
-    /*
-     * Move active content.
-     *
-     * This is still the same smooth
-     * spring-style movement system.
-     */
-
-    pillX.setValue(
-      clampedX -
-        PILL_WIDTH / 2
-    );
-
-    /*
-     * Find tab under finger.
-     */
-
-    const relativeX =
-      clampedX -
-      BAR_PADDING;
-
-    let newIndex =
-      Math.floor(
-        relativeX /
-          slotWidth
-      );
-
-    newIndex = Math.max(
-      0,
-      Math.min(
-        tabs.length - 1,
-        newIndex
-      )
-    );
-
-    /*
-     * ==========================================================
-     * NEW TAB
-     * ==========================================================
-     */
-
-    if (
-      newIndex !==
-      currentIndex.current
-    ) {
-      currentIndex.current =
-        newIndex;
-
-      /*
-       * Change icon + label.
-       */
-
-      setVisualIndex(
-        newIndex
-      );
-
-      /*
-       * Tell parent.
-       */
-
-      onChange(
-        tabs[newIndex].key
-      );
-
-      /*
-       * Small spring animation.
-       *
-       * No visible pill.
-       */
-
-      Animated.sequence([
-        Animated.spring(
-          activeScale,
-          {
-            toValue: 1.12,
-
-            friction: 6,
-            tension: 140,
-
-            useNativeDriver: true,
-          }
-        ),
-
-        Animated.spring(
-          activeScale,
-          {
-            toValue:
-              LONG_PRESS_SCALE,
-
-            friction: 7,
-            tension: 110,
-
-            useNativeDriver: true,
-          }
-        ),
-      ]).start();
-    }
   };
 
   /*
