@@ -8,6 +8,14 @@ import { getAuthSession } from "./authStorage";
 import { apiFetch } from "./api";
 
 /**
+ * TEMPORARY, LOCAL ONLY: Expo Go has no remote push notification
+ * support since SDK 53, and touching the notification APIs there
+ * throws "runtime not ready". This skips that work so the rest of
+ * the app can be tested in Expo Go. Do not commit this.
+ */
+const IS_EXPO_GO = Constants.appOwnership === "expo";
+
+/**
  * ============================================================
  * PUSH NOTIFICATIONS
  * ============================================================
@@ -115,38 +123,40 @@ function wantsSystemTray(data: any): boolean {
   );
 }
 
-Notifications.setNotificationHandler({
-  handleNotification: async (notification) => {
-    const foreground = AppState.currentState === "active";
-    const forced = wantsSystemTray(notification.request.content.data);
-    const inHeader = foreground && !forced;
+if (!IS_EXPO_GO) {
+  Notifications.setNotificationHandler({
+    handleNotification: async (notification) => {
+      const foreground = AppState.currentState === "active";
+      const forced = wantsSystemTray(notification.request.content.data);
+      const inHeader = foreground && !forced;
 
-    return {
-      shouldShowAlert: !inHeader,
-      shouldShowBanner: !inHeader,
-      shouldShowList: !inHeader,
-      shouldPlaySound: !inHeader,
-      shouldSetBadge: true,
-    };
-  },
-});
-
-/** Turns every foreground arrival into a header banner. */
-Notifications.addNotificationReceivedListener((notification) => {
-  if (AppState.currentState !== "active") return;
-
-  const content = notification.request.content;
-
-  /** a forced one went to the tray, so the header stays out of it */
-  if (wantsSystemTray(content.data)) return;
-
-  publishBanner({
-    id: `${notification.request.identifier || "push"}-${Date.now()}`,
-    title: content.title || "Notification",
-    body: content.body || "",
-    target: targetFrom(content.data),
+      return {
+        shouldShowAlert: !inHeader,
+        shouldShowBanner: !inHeader,
+        shouldShowList: !inHeader,
+        shouldPlaySound: !inHeader,
+        shouldSetBadge: true,
+      };
+    },
   });
-});
+
+  /** Turns every foreground arrival into a header banner. */
+  Notifications.addNotificationReceivedListener((notification) => {
+    if (AppState.currentState !== "active") return;
+
+    const content = notification.request.content;
+
+    /** a forced one went to the tray, so the header stays out of it */
+    if (wantsSystemTray(content.data)) return;
+
+    publishBanner({
+      id: `${notification.request.identifier || "push"}-${Date.now()}`,
+      title: content.title || "Notification",
+      body: content.body || "",
+      target: targetFrom(content.data),
+    });
+  });
+}
 
 /**
  * Shows a banner without a push behind it, for anything the app
@@ -271,6 +281,11 @@ export type EnablePushResult =
  * only way back is the app's settings page.
  */
 export async function enablePush(): Promise<EnablePushResult> {
+  if (IS_EXPO_GO) {
+    _status = { step: "not-a-device" };
+    return { ok: false, reason: "not-a-device" };
+  }
+
   if (!Device.isDevice) {
     _status = { step: "not-a-device" };
     return { ok: false, reason: "not-a-device" };
@@ -323,6 +338,11 @@ export async function disablePush(): Promise<void> {
  * an upsert keyed on the device.
  */
 export async function registerForPush(): Promise<string | null> {
+  if (IS_EXPO_GO) {
+    _status = { step: "not-a-device" };
+    return null;
+  }
+
   try {
     if (!(await isPushEnabled())) {
       _status = { step: "turned-off" };
@@ -450,6 +470,8 @@ function targetFrom(data: any): PushTarget {
  * from cold, if there was one. Read once on mount.
  */
 export async function openedFromPush(): Promise<PushTarget | null> {
+  if (IS_EXPO_GO) return null;
+
   try {
     const response = await Notifications.getLastNotificationResponseAsync();
     if (!response) return null;
@@ -462,6 +484,8 @@ export async function openedFromPush(): Promise<PushTarget | null> {
 
 /** Fires when a notification is tapped while the app is running. */
 export function onPushTapped(handler: (target: PushTarget) => void) {
+  if (IS_EXPO_GO) return () => {};
+
   const sub = Notifications.addNotificationResponseReceivedListener(
     (response) => handler(targetFrom(response.notification.request.content.data))
   );
@@ -471,6 +495,8 @@ export function onPushTapped(handler: (target: PushTarget) => void) {
 
 /** Fires when one arrives with the app in the foreground. */
 export function onPushReceived(handler: (target: PushTarget) => void) {
+  if (IS_EXPO_GO) return () => {};
+
   const sub = Notifications.addNotificationReceivedListener((notification) =>
     handler(targetFrom(notification.request.content.data))
   );
@@ -480,6 +506,8 @@ export function onPushReceived(handler: (target: PushTarget) => void) {
 
 /** Clears the number on the app icon. */
 export async function clearBadge(): Promise<void> {
+  if (IS_EXPO_GO) return;
+
   try {
     await Notifications.setBadgeCountAsync(0);
   } catch {

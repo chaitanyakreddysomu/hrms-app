@@ -10,6 +10,7 @@ import {
   openedFromPush,
   registerForPush,
   getPushStatus,
+  showInAppBanner,
 } from "./push";
 
 /**
@@ -64,9 +65,20 @@ export function useNotifications({ countPath, onOpen }: Options) {
   /* ---- this device, on the list ---- */
   useEffect(() => {
     /** the outcome is logged, since a failure is otherwise silent */
-    registerForPush().then(() =>
-      console.log("Push registration:", JSON.stringify(getPushStatus()))
-    );
+    registerForPush().then(() => {
+      const status = getPushStatus();
+      console.log("Push registration:", JSON.stringify(status));
+
+      /**
+       * TEMPORARY, LOCAL ONLY: surfaces the registration outcome
+       * on screen so it can be read off the phone directly instead
+       * of a terminal. Do not commit this.
+       */
+      showInAppBanner(
+        "Push status: " + status.step,
+        status.detail || status.token || "(no detail)"
+      );
+    });
 
     refresh();
     clearBadge();
