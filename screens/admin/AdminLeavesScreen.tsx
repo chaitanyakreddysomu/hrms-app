@@ -590,6 +590,7 @@ export default function AdminLeavesScreen({ navigation, embedded }: Props & { em
             contentContainerStyle={{ padding: 24, paddingTop: shellTop, paddingBottom: 150 }}
             refreshControl={
               <RefreshControl
+          progressViewOffset={shellTop}
                 refreshing={refreshing}
                 onRefresh={onRefresh}
                 tintColor="#2563EB"

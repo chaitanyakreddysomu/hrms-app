@@ -432,7 +432,7 @@ export default function AdminBirthdaysScreen({ navigation, embedded }: Props & {
           stickySectionHeadersEnabled={false}
           contentContainerStyle={{ padding: 24, paddingTop: shellTop, paddingBottom: 150, flexGrow: 1 }}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#2563EB" colors={["#2563EB"]} />
+            <RefreshControl progressViewOffset={shellTop} refreshing={refreshing} onRefresh={onRefresh} tintColor="#2563EB" colors={["#2563EB"]} />
           }
           ListEmptyComponent={() => (
             <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingVertical: 60 }}>

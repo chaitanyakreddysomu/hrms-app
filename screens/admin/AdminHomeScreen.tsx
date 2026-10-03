@@ -278,7 +278,7 @@ export default function AdminHomeScreen({
           }}
           tintColor="#64748B"
           colors={["#64748B"]}
-          progressViewOffset={40}
+          progressViewOffset={shellTop}
         />
       }
     >

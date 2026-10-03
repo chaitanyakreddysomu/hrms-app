@@ -443,6 +443,7 @@ export default function PendingRequestsScreen({ navigation, embedded }: Props & 
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
+          progressViewOffset={shellTop}
             refreshing={refreshing}
             onRefresh={onRefresh}
             tintColor="#2563EB"

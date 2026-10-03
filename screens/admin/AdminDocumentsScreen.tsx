@@ -516,7 +516,7 @@ export default function AdminDocumentsScreen({ navigation, embedded }: Props & {
             keyExtractor={(item, index) => item.id || item._id || `emp-${index}`}
             renderItem={renderEmployee}
             contentContainerStyle={{ padding: 24, paddingTop: shellTop, paddingBottom: 150 }}
-            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#2563EB" colors={["#2563EB"]} />}
+            refreshControl={<RefreshControl progressViewOffset={shellTop} refreshing={refreshing} onRefresh={onRefresh} tintColor="#2563EB" colors={["#2563EB"]} />}
             onEndReached={loadMore}
             onEndReachedThreshold={0.5}
             ListEmptyComponent={() => (

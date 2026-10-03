@@ -325,6 +325,7 @@ export default function HrMyHomeScreen({ name, onNavigate }: Props) {
       }}
       refreshControl={
         <RefreshControl
+          progressViewOffset={shellTop}
           refreshing={refreshing}
           onRefresh={() => {
             setRefreshing(true);

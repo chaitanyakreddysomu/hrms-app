@@ -1250,6 +1250,7 @@ export default function AdminEmployeesScreen({
           keyboardShouldPersistTaps="handled"
           refreshControl={
             <RefreshControl
+          progressViewOffset={shellTop}
               refreshing={
                 refreshing
               }

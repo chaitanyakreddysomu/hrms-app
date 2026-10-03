@@ -570,6 +570,7 @@ export default function AdminBankDetailsScreen({ navigation, embedded }: Props &
             contentContainerStyle={{ padding: 24, paddingTop: shellTop, paddingBottom: 150 }}
             refreshControl={
               <RefreshControl
+          progressViewOffset={shellTop}
                 refreshing={refreshing}
                 onRefresh={onRefresh}
                 tintColor="#2563EB"

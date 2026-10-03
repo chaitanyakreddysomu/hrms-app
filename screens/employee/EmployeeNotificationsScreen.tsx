@@ -161,6 +161,7 @@ export default function EmployeeNotificationsScreen({
       contentContainerStyle={{ padding: 16, paddingTop: shellTop, paddingBottom: 150 }}
       refreshControl={
         <RefreshControl
+          progressViewOffset={shellTop}
           refreshing={refreshing}
           onRefresh={() => {
             setRefreshing(true);

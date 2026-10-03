@@ -601,7 +601,7 @@ export default function AdminHolidaysScreen({ navigation, embedded }: Props & { 
           {...shellScroll}
           contentContainerStyle={{ padding: 24, paddingTop: shellTop, paddingBottom: 150 }}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#2563EB" colors={["#2563EB"]} />
+            <RefreshControl progressViewOffset={shellTop} refreshing={refreshing} onRefresh={onRefresh} tintColor="#2563EB" colors={["#2563EB"]} />
           }
         >
           {/* CALENDAR CARD */}
@@ -681,7 +681,7 @@ export default function AdminHolidaysScreen({ navigation, embedded }: Props & { 
           {...shellScroll}
           contentContainerStyle={{ padding: 24, paddingTop: shellTop, paddingBottom: 150 }}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#2563EB" colors={["#2563EB"]} />
+            <RefreshControl progressViewOffset={shellTop} refreshing={refreshing} onRefresh={onRefresh} tintColor="#2563EB" colors={["#2563EB"]} />
           }
           ListHeaderComponent={() => (
             <Text
