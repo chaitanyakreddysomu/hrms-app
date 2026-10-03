@@ -3,7 +3,6 @@ import React, {
   useRef,
   useState,
 } from "react";
-import type { RefObject } from "react";
 
 import {
   Animated,
@@ -14,7 +13,6 @@ import {
 } from "react-native";
 
 import { Ionicons } from "@expo/vector-icons";
-import GlassSurface from "./GlassSurface";
 
 export interface PillTab {
   key: string;
@@ -30,8 +28,6 @@ interface Props {
   onChange: (key: string) => void;
   onLongPress?: (key: string) => void;
   bottomInset?: number;
-  /** what the bar's glass blurs on Android, see GlassSurface */
-  blurTarget?: RefObject<View | null>;
 }
 
 const ACTIVE = "#007AFF";
@@ -56,7 +52,6 @@ export default function PillTabBar({
   onChange,
   onLongPress,
   bottomInset = 0,
-  blurTarget,
 }: Props) {
   /*
    * ============================================================
@@ -692,15 +687,7 @@ export default function PillTabBar({
       ]}
       pointerEvents="box-none"
     >
-      <GlassSurface
-        radius={34}
-        intensity={55}
-        elevated={false}
-        specular={false}
-        rim={true}
-        blurTarget={blurTarget}
-        style={styles.bar}
-      >
+      <View style={[styles.bar, styles.barSolid]}>
         <View
           ref={barRef}
           style={styles.barInner}
@@ -899,7 +886,7 @@ export default function PillTabBar({
             }
           )}
         </View>
-      </GlassSurface>
+      </View>
     </View>
   );
 }
@@ -925,13 +912,30 @@ const styles = StyleSheet.create({
 
   /*
    * ============================================================
-   * MAIN GLASS BAR
+   * MAIN BAR
    * ============================================================
    */
 
   bar: {
     width: "100%",
     height: 70,
+  },
+
+  /**
+   * Solid white rather than glass: Android's blur fallback was
+   * unreliable across devices, so the bar is an opaque surface
+   * with its own shadow to keep the floating look.
+   */
+  barSolid: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 34,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(15,23,42,0.06)",
+    shadowColor: "#0F172A",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 10,
   },
 
   barInner: {

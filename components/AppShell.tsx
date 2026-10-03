@@ -524,29 +524,19 @@ function Shell({ tabs, initialTabKey, logo, navigateRef, switcher }: Props) {
         pointerEvents="box-none"
       >
         {/**
-         * The same liquid glass as the bottom bar, run edge to edge
-         * and squared off so it carries the status bar with it.
-         *
-         * `rim` is off: the lit border belongs on a surface that
-         * floats, and on a full width band its top and side runs
-         * are off screen, leaving a line under the icons that
-         * reads as a second strip. The fill and the blur do the
-         * work here.
+         * Plain white, run edge to edge and squared off so it
+         * carries the status bar with it. Android's blur fallback
+         * was unreliable across devices, so the header is a solid
+         * surface instead of glass.
          */}
         <View
-          style={[styles.headerGlass, { height: insets.top + BAR_HEIGHT }]}
+          style={[
+            styles.headerGlass,
+            styles.headerSolid,
+            { height: insets.top + BAR_HEIGHT },
+          ]}
           pointerEvents="none"
-        >
-          <GlassSurface
-            radius={0}
-            rim={false}
-            elevated={false}
-            blurTarget={contentRef}
-            style={StyleSheet.absoluteFill}
-          >
-            <View />
-          </GlassSurface>
-        </View>
+        />
 
         <PillHeader
           title={switcherHere ? currentView?.label || page.title : page.title}
@@ -743,7 +733,6 @@ function Shell({ tabs, initialTabKey, logo, navigateRef, switcher }: Props) {
       <PillTabBar
         tabs={bottomTabs}
         activeKey={tab.key}
-        blurTarget={contentRef}
         onChange={(key) => {
           if (pickerOpen) togglePicker(false);
 
@@ -791,6 +780,11 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
+  },
+  headerSolid: {
+    backgroundColor: "#FFFFFF",
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: "rgba(15,23,42,0.08)",
   },
   picker: {
     position: "absolute",
