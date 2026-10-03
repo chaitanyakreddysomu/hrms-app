@@ -10,6 +10,8 @@ export interface AuthSession {
     name: string;
     role: string;
     email?: string;
+    /** true on a default-password account, e.g. one an admin just created */
+    mustChangePassword?: boolean;
   };
 }
 

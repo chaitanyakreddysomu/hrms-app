@@ -360,12 +360,6 @@ export default function HrAttendanceScreen() {
               year: "numeric",
             })}
           </Text>
-
-          <Text
-            style={{ color: "#94A3B8", fontSize: 11, fontWeight: "600" }}
-          >
-            {records.length} records, swipe to change day
-          </Text>
         </View>
 
         <TouchableOpacity

@@ -19,6 +19,7 @@ import { InAppBanner, onInAppBanner } from "../utils/push";
 import PillTabBar, { PillTab } from "./PillTabBar";
 import HeaderMenu, { HeaderMenuItem } from "./HeaderMenu";
 import GlassSurface from "./GlassSurface";
+import ChangePasswordModal from "./ChangePasswordModal";
 /** the header height, shared with the pages that clear it */
 import { BAR_HEIGHT } from "./shellMetrics";
 import {
@@ -508,6 +509,8 @@ function Shell({ tabs, initialTabKey, logo, navigateRef, switcher }: Props) {
 
   return (
     <View style={styles.root}>
+      <ChangePasswordModal />
+
       {/* pages ------------------------------------------------ */}
       <BlurTargetView ref={contentRef} style={styles.pages}>
         {outgoing &&
@@ -708,7 +711,6 @@ function Shell({ tabs, initialTabKey, logo, navigateRef, switcher }: Props) {
         }))}
         top={insets.top + BAR_HEIGHT + 4}
         onClose={() => setSwitcherOpen(false)}
-        blurTarget={contentRef}
       />
 
       {/* three dot menu --------------------------------------- */}
@@ -717,7 +719,6 @@ function Shell({ tabs, initialTabKey, logo, navigateRef, switcher }: Props) {
         items={menuItems}
         top={insets.top + BAR_HEIGHT + 4}
         onClose={() => setMenuOpen(false)}
-        blurTarget={contentRef}
       />
 
       {/* floating bottom nav ---------------------------------- */}
@@ -727,7 +728,6 @@ function Shell({ tabs, initialTabKey, logo, navigateRef, switcher }: Props) {
         items={tabMenuItems}
         bottom={Math.max(insets.bottom, 14) + 78}
         onClose={() => setTabMenuKey(null)}
-        blurTarget={contentRef}
       />
 
       <PillTabBar

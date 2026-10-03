@@ -720,7 +720,7 @@ export default function AdminReferralsScreen({ navigation, embedded }: Props & {
             </View>
 
             {selected && (
-              <ScrollView contentContainerStyle={{ padding: 24, paddingTop: shellTop, paddingBottom: 40 }}>
+              <ScrollView contentContainerStyle={{ padding: 24, paddingBottom: 40 }}>
                 {/* CANDIDATE */}
                 <View
                   style={{
@@ -1220,7 +1220,7 @@ export default function AdminReferralsScreen({ navigation, embedded }: Props & {
               </TouchableOpacity>
             </View>
 
-            <ScrollView contentContainerStyle={{ padding: 24, paddingTop: shellTop, paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
+            <ScrollView contentContainerStyle={{ padding: 24, paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
               <Text
                 style={{
                   color: "#9CA3AF",

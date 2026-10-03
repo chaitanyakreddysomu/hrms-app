@@ -279,20 +279,6 @@ export default function HrDashboardScreen({ route, navigation }: Props) {
             render: ({ reloadKey }) => <HrBirthdaysScreen key={reloadKey} />,
           },
           {
-            key: "documents",
-            title: "My Documents",
-            subtitle: "Upload and track",
-            icon: "folder-open-outline",
-            render: ({ reloadKey }) => (
-              <EmployeeDocumentsScreen
-                key={reloadKey}
-                profilePath="/api/hr/profile"
-                uploadPath="/api/hr/documents/upload"
-                previewPath="/api/hr/documents/preview"
-              />
-            ),
-          },
-          {
             key: "holidays",
             title: "Holidays",
             subtitle: "Company calendar",

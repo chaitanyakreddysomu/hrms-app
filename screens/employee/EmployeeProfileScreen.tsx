@@ -42,6 +42,7 @@ import {
   formatDate,
 } from "./ui";
 import ModalDismiss from "../../components/ModalDismiss";
+import UpdateSheet from "../../components/UpdateSheet";
 
 /**
  * ============================================================
@@ -102,6 +103,8 @@ export default function EmployeeProfileScreen({
     onResult: ({ ok, title, message }) =>
       showToast({ type: ok ? "success" : "error", title, message }),
   });
+
+  const [updateSheetOpen, setUpdateSheetOpen] = useState(false);
 
   const [biometricOn, setBiometricOn] = useState(false);
   const [biometricBusy, setBiometricBusy] = useState(false);
@@ -839,7 +842,38 @@ export default function EmployeeProfileScreen({
             )}
           </View>
         </Card>
+
+        <Card onPress={() => setUpdateSheetOpen(true)}>
+          <View style={{ flexDirection: "row", alignItems: "center" }}>
+            <IconTile icon="cloud-download-outline" tone="blue" />
+
+            <View style={{ flex: 1, marginLeft: 14 }}>
+              <Text
+                style={{ color: "#0F172A", fontSize: 15, fontWeight: "700" }}
+              >
+                App Update
+              </Text>
+              <Text
+                style={{
+                  color: "#64748B",
+                  fontSize: 12,
+                  fontWeight: "600",
+                  marginTop: 3,
+                }}
+              >
+                Check for the latest version
+              </Text>
+            </View>
+
+            <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
+          </View>
+        </Card>
       </ScrollView>
+
+      <UpdateSheet
+        visible={updateSheetOpen}
+        onClose={() => setUpdateSheetOpen(false)}
+      />
 
       {/* ============================================================
           SECURITY AND 2FA

@@ -210,6 +210,7 @@ export default function TwoFactorScreen({ navigation, route }: Props) {
           name: userName,
           role: normalizedRole,
           email: backendUser?.email || (email || "").trim().toLowerCase(),
+          mustChangePassword: !!backendUser?.mustChangePassword,
         },
       });
 

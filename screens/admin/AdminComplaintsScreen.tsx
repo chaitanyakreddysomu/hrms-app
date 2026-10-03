@@ -663,7 +663,7 @@ export default function AdminComplaintsScreen({ navigation, embedded }: Props & 
             </View>
 
             {selected && (
-              <ScrollView contentContainerStyle={{ padding: 24, paddingTop: shellTop, paddingBottom: 40 }}>
+              <ScrollView contentContainerStyle={{ padding: 24, paddingBottom: 40 }}>
                 {/* EMPLOYEE */}
                 <View
                   style={{

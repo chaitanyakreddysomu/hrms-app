@@ -229,6 +229,15 @@ export default function AdminDashboardScreen({ route, navigation }: Props) {
             icon: "people-outline",
             searchable: true,
             searchPlaceholder: "Search employees",
+            menu: [
+              {
+                key: "addEmployee",
+                label: "Add Employee",
+                icon: "person-add-outline",
+                action: "addEmployee",
+              },
+              { key: "refresh", label: "Refresh", icon: "refresh-outline" },
+            ],
             render: ({ reloadKey }) => (
               <AdminEmployeesScreen key={reloadKey} {...childProps()} />
             ),

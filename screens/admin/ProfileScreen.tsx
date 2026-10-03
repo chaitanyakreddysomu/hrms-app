@@ -35,6 +35,7 @@ import {
   verifyBiometric,
 } from "../../utils/biometrics";
 import ModalDismiss from "../../components/ModalDismiss";
+import UpdateSheet from "../../components/UpdateSheet";
 
 
 
@@ -152,6 +153,8 @@ export default function ProfileScreen({ navigation, embedded }: Props & { embedd
     onResult: ({ ok, title, message }) =>
       showToast({ type: ok ? "success" : "error", title, message }),
   });
+
+  const [updateSheetOpen, setUpdateSheetOpen] = useState(false);
 
   const [biometricEnabled, setBiometricEnabledState] = useState(false);
   const [biometricBusy, setBiometricBusy] = useState(false);
@@ -1654,7 +1657,39 @@ const handleSaveProfile = async () => {
             />
           )}
         </TouchableOpacity>
+
+        {/* =========================================
+            APP UPDATE
+        ========================================= */}
+
+        <TouchableOpacity
+          activeOpacity={0.85}
+          onPress={() => setUpdateSheetOpen(true)}
+          className="bg-white rounded-3xl p-5 border border-gray-200 flex-row items-center justify-between mb-4"
+        >
+          <View className="flex-row items-center flex-1">
+            <View className="w-12 h-12 rounded-2xl bg-blue-100 items-center justify-center mr-4">
+              <Ionicons name="cloud-download-outline" size={25} color="#2563EB" />
+            </View>
+
+            <View className="flex-1">
+              <Text className="text-gray-900 font-bold text-base">
+                App Update
+              </Text>
+              <Text className="text-gray-500 text-xs mt-1">
+                Check for the latest version
+              </Text>
+            </View>
+          </View>
+
+          <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
+        </TouchableOpacity>
       </ScrollView>
+
+      <UpdateSheet
+        visible={updateSheetOpen}
+        onClose={() => setUpdateSheetOpen(false)}
+      />
 
       {/* =========================================
           SECURITY BOTTOM SHEET

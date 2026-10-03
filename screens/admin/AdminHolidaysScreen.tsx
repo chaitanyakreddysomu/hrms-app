@@ -756,7 +756,7 @@ export default function AdminHolidaysScreen({ navigation, embedded }: Props & { 
             </View>
 
             {selectedHoliday && (
-              <ScrollView contentContainerStyle={{ padding: 24, paddingTop: shellTop, paddingBottom: 40 }}>
+              <ScrollView contentContainerStyle={{ padding: 24, paddingBottom: 40 }}>
                 {/* TITLE BLOCK */}
                 <View
                   style={{
@@ -951,7 +951,7 @@ export default function AdminHolidaysScreen({ navigation, embedded }: Props & { 
               </TouchableOpacity>
             </View>
 
-            <ScrollView contentContainerStyle={{ padding: 24, paddingTop: shellTop, paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
+            <ScrollView contentContainerStyle={{ padding: 24, paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
               {/* NAME */}
               <Text style={{ color: "#9CA3AF", fontSize: 9, fontWeight: "700", textTransform: "uppercase", marginBottom: 8 }}>
                 Holiday Name

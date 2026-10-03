@@ -1,5 +1,4 @@
 import React, { useEffect, useRef, useState } from "react";
-import type { RefObject } from "react";
 import {
   Animated,
   Easing,
@@ -11,7 +10,6 @@ import {
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import GlassSurface from "./GlassSurface";
 
 /**
  * ============================================================
@@ -54,8 +52,6 @@ interface Props {
   /** which edge the card is pinned to, right by default */
   align?: "left" | "right";
   onClose: () => void;
-  /** what the card's glass blurs on Android, see GlassSurface */
-  blurTarget?: RefObject<View | null>;
 }
 
 export default function HeaderMenu({
@@ -65,7 +61,6 @@ export default function HeaderMenu({
   bottom,
   align = "right",
   onClose,
-  blurTarget,
 }: Props) {
   /** anchored to the bottom it has to rise into place, not drop */
   const fromBottom = bottom !== undefined;
@@ -135,7 +130,7 @@ export default function HeaderMenu({
           },
         ]}
       >
-        <GlassSurface radius={22} intensity={70} blurTarget={blurTarget} style={styles.card}>
+        <View style={[styles.card, styles.cardSolid]}>
           <Animated.View style={{ opacity: swap }}>
             {open ? (
               <View style={styles.list}>
@@ -244,7 +239,7 @@ export default function HeaderMenu({
               </View>
             )}
           </Animated.View>
-        </GlassSurface>
+        </View>
       </Animated.View>
     </View>
   );
@@ -255,6 +250,16 @@ const styles = StyleSheet.create({
     position: "absolute",
     minWidth: 236,
     maxWidth: 300,
+    /**
+     * The shadow lives on this outer view rather than the clipped
+     * card: overflow: "hidden" on the same view as a shadow clips
+     * the shadow away along with the corners.
+     */
+    shadowColor: "#0F172A",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.12,
+    shadowRadius: 24,
+    elevation: 12,
   },
   pinRight: {
     right: 12,
@@ -264,6 +269,16 @@ const styles = StyleSheet.create({
   },
   card: {
     overflow: "hidden",
+    borderRadius: 22,
+  },
+  /**
+   * Solid white rather than glass: Android's blur fallback was
+   * unreliable across devices, same as the header and tab bar.
+   */
+  cardSolid: {
+    backgroundColor: "#FFFFFF",
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(15,23,42,0.08)",
   },
   list: {
     paddingVertical: 6,

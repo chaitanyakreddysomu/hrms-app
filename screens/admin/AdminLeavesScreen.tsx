@@ -670,7 +670,7 @@ export default function AdminLeavesScreen({ navigation, embedded }: Props & { em
             </View>
 
             {selectedLeave && (
-              <ScrollView contentContainerStyle={{ padding: 24, paddingTop: shellTop, paddingBottom: 40 }}>
+              <ScrollView contentContainerStyle={{ padding: 24, paddingBottom: 40 }}>
                 {/* EMPLOYEE */}
                 <View
                   style={{

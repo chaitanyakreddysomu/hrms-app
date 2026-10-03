@@ -403,6 +403,7 @@ export default function LoginScreen({ navigation }: Props) {
           name: userName,
           role: normalizedRole,
           email: userEmail,
+          mustChangePassword: !!backendUser?.mustChangePassword,
         },
       });
 

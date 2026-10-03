@@ -181,7 +181,7 @@ export default function HrEmployeesScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [status, role, project]);
+  }, [status, role, project, search]);
 
   useEffect(() => {
     setLoading(true);

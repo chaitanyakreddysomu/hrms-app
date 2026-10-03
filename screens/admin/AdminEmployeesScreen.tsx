@@ -20,11 +20,13 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
+import * as Clipboard from "expo-clipboard";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../../navigation/AppNavigator";
 import { getAuthSession } from "../../utils/authStorage";
 import {
   toShellOptions,
+  useRegisterScreenAction,
   useShellFilters,
   useShellScroll,
   useShellSearch,
@@ -158,6 +160,136 @@ export default function AdminEmployeesScreen({
   const [newPassword, setNewPassword] = useState("");
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [savingEmployee, setSavingEmployee] = useState(false);
+
+  /**
+   * ============================================================
+   * ADD EMPLOYEE
+   * ============================================================
+   *
+   * An admin entering a new hire directly. The backend makes the
+   * account Active immediately and hands back a generated temp
+   * password, shown here once so it can be passed along.
+   */
+  const emptyNewEmployee = {
+    name: "",
+    email: "",
+    phone: "",
+    department: "",
+    designation: "",
+    role: "EMPLOYEE" as "EMPLOYEE" | "HR" | "ADMIN",
+    dob: "",
+    gender: "",
+    bloodGroup: "",
+    address: "",
+    joiningDate: "",
+    package: "",
+  };
+
+  const [addEmployeeOpen, setAddEmployeeOpen] = useState(false);
+  const [newEmployee, setNewEmployee] = useState(emptyNewEmployee);
+  const [addingEmployee, setAddingEmployee] = useState(false);
+  const [createdCredentials, setCreatedCredentials] = useState<{
+    id: string;
+    email: string;
+    tempPassword: string;
+  } | null>(null);
+
+  const setNewField = <K extends keyof typeof emptyNewEmployee>(
+    field: K,
+    value: (typeof emptyNewEmployee)[K]
+  ) => setNewEmployee((current) => ({ ...current, [field]: value }));
+
+  const closeAddEmployee = () => {
+    if (addingEmployee) return;
+
+    setAddEmployeeOpen(false);
+    setNewEmployee(emptyNewEmployee);
+    setCreatedCredentials(null);
+  };
+
+  useRegisterScreenAction("addEmployee", () => setAddEmployeeOpen(true));
+
+  const handleAddEmployee = async () => {
+    if (addingEmployee) return;
+
+    if (!newEmployee.name.trim()) {
+      showToast({
+        type: "error",
+        title: "Name Required",
+        message: "Enter the employee full name.",
+      });
+
+      return;
+    }
+
+    if (!newEmployee.email.trim()) {
+      showToast({
+        type: "error",
+        title: "Email Required",
+        message: "Enter the employee email address.",
+      });
+
+      return;
+    }
+
+    setAddingEmployee(true);
+
+    try {
+      const session = await getAuthSession();
+
+      if (!session?.token) {
+        showToast({
+          type: "error",
+          title: "Session Expired",
+          message: "Please log in again to add employees.",
+        });
+
+        return;
+      }
+
+      const res = await apiFetch("/api/admin/employees", session.token, {
+        method: "POST",
+        body: JSON.stringify({
+          ...newEmployee,
+          package: newEmployee.package
+            ? Number(newEmployee.package)
+            : undefined,
+        }),
+      });
+
+      const data = await res.json().catch(() => ({} as any));
+
+      if (!res.ok) {
+        showToast({
+          type: "error",
+          title: "Could Not Add Employee",
+          message: data?.message || "Something went wrong.",
+        });
+
+        return;
+      }
+
+      if (data?.user) {
+        setEmployees((current) => [data.user, ...current]);
+      }
+
+      setCreatedCredentials({
+        id: data.user?.id,
+        email: data.user?.email,
+        tempPassword: data.tempPassword,
+      });
+    } catch (error) {
+      console.error("Add employee error:", error);
+
+      showToast({
+        type: "error",
+        title: "Something Went Wrong",
+        message: "Could not reach the server. Please try again.",
+      });
+    } finally {
+      setAddingEmployee(false);
+    }
+  };
 
   /** dates travel as YYYY-MM-DD, the shape the API stores */
   const toDateInput = (value?: string | Date) => {
@@ -2589,7 +2721,344 @@ export default function AdminEmployeesScreen({
           </View>
         </View>
       </Modal>
+
+      {/* ============================================================
+          ADD EMPLOYEE
+          ============================================================ */}
+
+      <Modal
+        visible={addEmployeeOpen}
+        animationType="slide"
+        transparent
+        onRequestClose={closeAddEmployee}
+      >
+        <View
+          style={{
+            flex: 1,
+            justifyContent: "flex-end",
+            backgroundColor: "rgba(0,0,0,0.5)",
+          }}
+        >
+          <Pressable style={{ flex: 1 }} onPress={closeAddEmployee} />
+
+          <View
+            style={{
+              maxHeight: "88%",
+              backgroundColor: "#FFFFFF",
+              borderTopLeftRadius: 32,
+              borderTopRightRadius: 32,
+              paddingHorizontal: 20,
+              paddingTop: 12,
+              paddingBottom: 28,
+            }}
+          >
+            <View style={{ alignItems: "center", marginBottom: 14 }}>
+              <View
+                style={{
+                  width: 44,
+                  height: 5,
+                  borderRadius: 3,
+                  backgroundColor: "#D1D5DB",
+                }}
+              />
+            </View>
+
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginBottom: 18,
+              }}
+            >
+              <Text
+                style={{ fontSize: 20, fontWeight: "700", color: "#111827" }}
+              >
+                {createdCredentials ? "Employee Added" : "Add Employee"}
+              </Text>
+
+              <TouchableOpacity
+                onPress={closeAddEmployee}
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 18,
+                  backgroundColor: "#F3F4F6",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Ionicons name="close" size={20} color="#6B7280" />
+              </TouchableOpacity>
+            </View>
+
+            {createdCredentials ? (
+              <ScrollView showsVerticalScrollIndicator={false}>
+                <Text
+                  style={{ color: "#6B7280", fontSize: 13, marginBottom: 16 }}
+                >
+                  Share these sign-in details with {createdCredentials.id}.
+                  The password is shown only this once.
+                </Text>
+
+                <View
+                  style={{
+                    backgroundColor: "#F9FAFB",
+                    borderRadius: 16,
+                    borderWidth: 1,
+                    borderColor: "#E5E7EB",
+                    padding: 16,
+                  }}
+                >
+                  <CredentialRow label="Employee ID" value={createdCredentials.id} />
+                  <CredentialRow label="Email" value={createdCredentials.email} />
+                  <CredentialRow
+                    label="Temporary Password"
+                    value={createdCredentials.tempPassword}
+                    last
+                    onCopy={() =>
+                      Clipboard.setStringAsync(createdCredentials.tempPassword)
+                    }
+                  />
+                </View>
+
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  onPress={closeAddEmployee}
+                  style={{
+                    height: 50,
+                    borderRadius: 16,
+                    backgroundColor: "#2563EB",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    marginTop: 22,
+                  }}
+                >
+                  <Text
+                    style={{ color: "#FFFFFF", fontSize: 14, fontWeight: "700" }}
+                  >
+                    Done
+                  </Text>
+                </TouchableOpacity>
+              </ScrollView>
+            ) : (
+              <ScrollView
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+              >
+                <EditField
+                  label="Full Name"
+                  value={newEmployee.name}
+                  onChangeText={(value) => setNewField("name", value)}
+                />
+
+                <EditField
+                  label="Email"
+                  value={newEmployee.email}
+                  keyboardType="email-address"
+                  onChangeText={(value) => setNewField("email", value)}
+                />
+
+                <EditField
+                  label="Phone Number"
+                  value={newEmployee.phone}
+                  keyboardType="phone-pad"
+                  onChangeText={(value) => setNewField("phone", value)}
+                />
+
+                <EditChoice
+                  label="Department"
+                  value={newEmployee.department}
+                  options={DEPARTMENT_OPTIONS}
+                  onSelect={(value) => setNewField("department", value)}
+                />
+
+                <EditField
+                  label="Designation"
+                  value={newEmployee.designation}
+                  onChangeText={(value) => setNewField("designation", value)}
+                />
+
+                <EditChoice
+                  label="Role"
+                  value={newEmployee.role}
+                  options={["EMPLOYEE", "HR", "ADMIN"]}
+                  onSelect={(value) => setNewField("role", value as any)}
+                />
+
+                <EditField
+                  label="Date of Birth"
+                  value={newEmployee.dob}
+                  placeholder="YYYY-MM-DD"
+                  onChangeText={(value) => setNewField("dob", value)}
+                />
+
+                <EditChoice
+                  label="Gender"
+                  value={newEmployee.gender}
+                  options={["Male", "Female", "Other"]}
+                  onSelect={(value) => setNewField("gender", value)}
+                />
+
+                <EditChoice
+                  label="Blood Group"
+                  value={newEmployee.bloodGroup}
+                  options={BLOOD_GROUP_OPTIONS}
+                  onSelect={(value) => setNewField("bloodGroup", value)}
+                />
+
+                <EditField
+                  label="Address"
+                  value={newEmployee.address}
+                  multiline
+                  onChangeText={(value) => setNewField("address", value)}
+                />
+
+                <EditField
+                  label="Joining Date"
+                  value={newEmployee.joiningDate}
+                  placeholder="YYYY-MM-DD"
+                  onChangeText={(value) => setNewField("joiningDate", value)}
+                />
+
+                <EditField
+                  label="Annual Package (Rs)"
+                  value={newEmployee.package}
+                  placeholder="e.g. 1200000"
+                  keyboardType="numeric"
+                  onChangeText={(value) =>
+                    setNewField("package", value.replace(/[^0-9.]/g, ""))
+                  }
+                />
+
+                <Text
+                  style={{
+                    color: "#9CA3AF",
+                    fontSize: 11,
+                    marginTop: 4,
+                    marginBottom: 6,
+                  }}
+                >
+                  A temporary password is generated automatically and shown
+                  once the employee is added.
+                </Text>
+
+                <View
+                  style={{
+                    flexDirection: "row",
+                    marginTop: 16,
+                    marginBottom: 10,
+                  }}
+                >
+                  <TouchableOpacity
+                    activeOpacity={0.85}
+                    onPress={closeAddEmployee}
+                    disabled={addingEmployee}
+                    style={{
+                      flex: 1,
+                      height: 50,
+                      borderRadius: 16,
+                      backgroundColor: "#F3F4F6",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      marginRight: 8,
+                    }}
+                  >
+                    <Text
+                      style={{
+                        color: "#374151",
+                        fontSize: 14,
+                        fontWeight: "700",
+                      }}
+                    >
+                      Cancel
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    activeOpacity={0.85}
+                    onPress={handleAddEmployee}
+                    disabled={addingEmployee}
+                    style={{
+                      flex: 1,
+                      height: 50,
+                      borderRadius: 16,
+                      backgroundColor: addingEmployee ? "#93B4F7" : "#2563EB",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      marginLeft: 8,
+                    }}
+                  >
+                    {addingEmployee ? (
+                      <ActivityIndicator color="#FFFFFF" />
+                    ) : (
+                      <Text
+                        style={{
+                          color: "#FFFFFF",
+                          fontSize: 14,
+                          fontWeight: "700",
+                        }}
+                      >
+                        Add Employee
+                      </Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              </ScrollView>
+            )}
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
+  );
+}
+
+/** one row of the "employee added" credentials card */
+function CredentialRow({
+  label,
+  value,
+  last,
+  onCopy,
+}: {
+  label: string;
+  value?: string;
+  last?: boolean;
+  onCopy?: () => void;
+}) {
+  return (
+    <View
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        paddingVertical: 10,
+        borderBottomWidth: last ? 0 : 1,
+        borderBottomColor: "#E5E7EB",
+      }}
+    >
+      <Text style={{ color: "#6B7280", fontSize: 11, fontWeight: "700" }}>
+        {label.toUpperCase()}
+      </Text>
+
+      <View style={{ flexDirection: "row", alignItems: "center" }}>
+        <Text
+          style={{
+            color: "#111827",
+            fontSize: 14,
+            fontWeight: "700",
+            marginRight: onCopy ? 10 : 0,
+          }}
+        >
+          {value}
+        </Text>
+
+        {!!onCopy && (
+          <TouchableOpacity onPress={onCopy} hitSlop={8}>
+            <Ionicons name="copy-outline" size={16} color="#6B7280" />
+          </TouchableOpacity>
+        )}
+      </View>
+    </View>
   );
 }
 

@@ -372,22 +372,47 @@ export default function EmployeeReferralsScreen() {
             <View
               style={{
                 flexDirection: "row",
-                alignItems: "center",
+                alignItems: "flex-start",
                 justifyContent: "space-between",
                 marginBottom: 12,
               }}
             >
-              <Text
-                style={{
-                  color: "#0F172A",
-                  fontSize: 20,
-                  fontWeight: "800",
-                  flex: 1,
-                }}
-                numberOfLines={1}
-              >
-                {open?.candidateName}
-              </Text>
+              <View style={{ flex: 1 }}>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <Text
+                    style={{
+                      color: "#0F172A",
+                      fontSize: 20,
+                      fontWeight: "800",
+                      marginRight: 10,
+                    }}
+                    numberOfLines={1}
+                  >
+                    {open?.candidateName}
+                  </Text>
+
+                  <StatusPill status={open?.status || "Under Review"} />
+                </View>
+
+                {!!open && (
+                  <Text
+                    style={{
+                      color: "#94A3B8",
+                      fontSize: 12,
+                      fontWeight: "600",
+                      marginTop: 4,
+                    }}
+                  >
+                    Referred on {formatDate(open.createdAt)}
+                  </Text>
+                )}
+              </View>
 
               <TouchableOpacity
                 onPress={() => setOpen(null)}
@@ -407,21 +432,12 @@ export default function EmployeeReferralsScreen() {
 
             {!!open && (
               <ScrollView showsVerticalScrollIndicator={false}>
-                <View style={{ marginBottom: 6 }}>
-                  <StatusPill status={open.status || "Under Review"} />
-                </View>
-
                 <Card>
                   <Row label="Email" value={open.email} />
                   <Row label="Phone" value={open.phone} />
                   <Row label="Role" value={open.role} />
                   <Row label="Current company" value={open.currentCompany} />
-                  <Row label="Location" value={open.location} />
-                  <Row
-                    label="Referred on"
-                    value={formatDate(open.createdAt)}
-                    last
-                  />
+                  <Row label="Location" value={open.location} last />
                 </Card>
 
                 {!!open.resumeUrl && (
