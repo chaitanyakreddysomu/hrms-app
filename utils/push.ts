@@ -123,6 +123,8 @@ Notifications.setNotificationHandler({
 
     return {
       shouldShowAlert: !inHeader,
+      shouldShowBanner: !inHeader,
+      shouldShowList: !inHeader,
       shouldPlaySound: !inHeader,
       shouldSetBadge: true,
     };

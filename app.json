@@ -6,7 +6,6 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
     "scheme": "ics-hrms",
     "ios": {
       "supportsTablet": true,
@@ -25,7 +24,6 @@
       },
       "package": "com.ics.hrms",
       "predictiveBackGestureEnabled": false,
-      "usesCleartextTraffic": true,
       "permissions": [
         "android.permission.POST_NOTIFICATIONS",
         "android.permission.ACCESS_FINE_LOCATION",
@@ -73,7 +71,16 @@
         {
           "faceIDPermission": "Allow ICS HRMS to unlock your saved session with Face ID."
         }
-      ]
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": true
+          }
+        }
+      ],
+      "expo-font"
     ],
     "extra": {
       "eas": {
