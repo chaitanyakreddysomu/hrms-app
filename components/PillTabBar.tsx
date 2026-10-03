@@ -3,6 +3,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import type { RefObject } from "react";
 
 import {
   Animated,
@@ -29,6 +30,8 @@ interface Props {
   onChange: (key: string) => void;
   onLongPress?: (key: string) => void;
   bottomInset?: number;
+  /** what the bar's glass blurs on Android, see GlassSurface */
+  blurTarget?: RefObject<View | null>;
 }
 
 const ACTIVE = "#007AFF";
@@ -53,6 +56,7 @@ export default function PillTabBar({
   onChange,
   onLongPress,
   bottomInset = 0,
+  blurTarget,
 }: Props) {
   /*
    * ============================================================
@@ -694,6 +698,7 @@ export default function PillTabBar({
         elevated={false}
         specular={false}
         rim={true}
+        blurTarget={blurTarget}
         style={styles.bar}
       >
         <View

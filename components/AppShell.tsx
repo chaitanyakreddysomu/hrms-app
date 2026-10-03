@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import { BlurTargetView } from "expo-blur";
 import PillHeader from "./PillHeader";
 import { InAppBanner, onInAppBanner } from "../utils/push";
 import PillTabBar, { PillTab } from "./PillTabBar";
@@ -144,6 +145,14 @@ function Shell({ tabs, initialTabKey, logo, navigateRef, switcher }: Props) {
   const bridge = useShellBridge();
   const filters = useShellFilterGroups();
   const insets = useSafeAreaInsets();
+
+  /**
+   * What every glass surface in the shell (header, tab bar, menus,
+   * section picker) blurs on Android. expo-blur's Android blur has
+   * nothing to sample without an explicit target, so it is handed
+   * this ref rather than left to find the content on its own.
+   */
+  const contentRef = useRef<View>(null);
 
   const [tabKey, setTabKey] = useState(initialTabKey || tabs[0].key);
   /** remembered section per tab, so returning to a tab keeps its page */
@@ -500,14 +509,14 @@ function Shell({ tabs, initialTabKey, logo, navigateRef, switcher }: Props) {
   return (
     <View style={styles.root}>
       {/* pages ------------------------------------------------ */}
-      <View style={styles.pages}>
+      <BlurTargetView ref={contentRef} style={styles.pages}>
         {outgoing &&
           renderPage(outgoing, { transform: [{ translateX: exitX }] })}
         {renderPage(
           { tab, page, reloadKey },
           { transform: [{ translateX: outgoing ? enterX : 0 }] }
         )}
-      </View>
+      </BlurTargetView>
 
       {/* floating header -------------------------------------- */}
       <View
@@ -532,6 +541,7 @@ function Shell({ tabs, initialTabKey, logo, navigateRef, switcher }: Props) {
             radius={0}
             rim={false}
             elevated={false}
+            blurTarget={contentRef}
             style={StyleSheet.absoluteFill}
           >
             <View />
@@ -635,6 +645,7 @@ function Shell({ tabs, initialTabKey, logo, navigateRef, switcher }: Props) {
             intensity={70}
             specular={false}
             elevated={false}
+            blurTarget={contentRef}
             style={styles.pickerCard}
           >
             <Text style={styles.pickerTitle}>
@@ -707,6 +718,7 @@ function Shell({ tabs, initialTabKey, logo, navigateRef, switcher }: Props) {
         }))}
         top={insets.top + BAR_HEIGHT + 4}
         onClose={() => setSwitcherOpen(false)}
+        blurTarget={contentRef}
       />
 
       {/* three dot menu --------------------------------------- */}
@@ -715,6 +727,7 @@ function Shell({ tabs, initialTabKey, logo, navigateRef, switcher }: Props) {
         items={menuItems}
         top={insets.top + BAR_HEIGHT + 4}
         onClose={() => setMenuOpen(false)}
+        blurTarget={contentRef}
       />
 
       {/* floating bottom nav ---------------------------------- */}
@@ -724,11 +737,13 @@ function Shell({ tabs, initialTabKey, logo, navigateRef, switcher }: Props) {
         items={tabMenuItems}
         bottom={Math.max(insets.bottom, 14) + 78}
         onClose={() => setTabMenuKey(null)}
+        blurTarget={contentRef}
       />
 
       <PillTabBar
         tabs={bottomTabs}
         activeKey={tab.key}
+        blurTarget={contentRef}
         onChange={(key) => {
           if (pickerOpen) togglePicker(false);
 

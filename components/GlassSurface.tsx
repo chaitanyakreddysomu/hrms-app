@@ -8,6 +8,7 @@ import {
 } from "react-native";
 import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
+import type { RefObject } from "react";
 
 /**
  * ============================================================
@@ -71,6 +72,14 @@ interface Props {
    * Adds the thin illuminated glass edge.
    */
   rim?: boolean;
+
+  /**
+   * On Android, BlurView has nothing to blur unless it is told
+   * which view to sample: a ref to a <BlurTargetView> wrapping the
+   * content underneath. Without this the blur silently falls back
+   * to a flat, near-invisible tint.
+   */
+  blurTarget?: RefObject<View | null>;
 }
 
 export default function GlassSurface({
@@ -81,6 +90,7 @@ export default function GlassSurface({
   elevated = false,
   specular = true,
   rim = true,
+  blurTarget,
 }: Props) {
   return (
     <View
@@ -117,7 +127,8 @@ export default function GlassSurface({
           style={StyleSheet.absoluteFill}
           intensity={intensity}
           tint="light"
-          experimentalBlurMethod={
+          blurTarget={blurTarget}
+          blurMethod={
             Platform.OS === "android"
               ? "dimezisBlurView"
               : undefined

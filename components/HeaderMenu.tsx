@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import type { RefObject } from "react";
 import {
   Animated,
   Easing,
@@ -53,6 +54,8 @@ interface Props {
   /** which edge the card is pinned to, right by default */
   align?: "left" | "right";
   onClose: () => void;
+  /** what the card's glass blurs on Android, see GlassSurface */
+  blurTarget?: RefObject<View | null>;
 }
 
 export default function HeaderMenu({
@@ -62,6 +65,7 @@ export default function HeaderMenu({
   bottom,
   align = "right",
   onClose,
+  blurTarget,
 }: Props) {
   /** anchored to the bottom it has to rise into place, not drop */
   const fromBottom = bottom !== undefined;
@@ -131,7 +135,7 @@ export default function HeaderMenu({
           },
         ]}
       >
-        <GlassSurface radius={22} intensity={70} style={styles.card}>
+        <GlassSurface radius={22} intensity={70} blurTarget={blurTarget} style={styles.card}>
           <Animated.View style={{ opacity: swap }}>
             {open ? (
               <View style={styles.list}>
