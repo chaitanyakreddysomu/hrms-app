@@ -102,7 +102,15 @@ class AttendanceForegroundService : Service() {
     val bootTimeMillis = System.currentTimeMillis() - SystemClock.elapsedRealtime()
     val chronometerBase = punchInMillis - bootTimeMillis
 
-    val content = RemoteViews(packageName, R.layout.notification_attendance).apply {
+    /**
+     * Two separate RemoteViews instances from the same layout - one
+     * for the collapsed state, one for expanded. Only setting the
+     * collapsed one left the expanded state to Android's own
+     * fallback, which is why it looked small/default until dragged
+     * open. Setting both makes the two states identical, so it
+     * always shows at the full fixed size.
+     */
+    fun inflate() = RemoteViews(packageName, R.layout.notification_attendance).apply {
       setTextViewText(R.id.text_punch_in, punchInText)
       setChronometer(R.id.live_timer, chronometerBase, null, true)
     }
@@ -115,7 +123,8 @@ class AttendanceForegroundService : Service() {
     return NotificationCompat.Builder(this, CHANNEL_ID)
       .setSmallIcon(applicationInfo.icon)
       .setStyle(NotificationCompat.DecoratedCustomViewStyle())
-      .setCustomContentView(content)
+      .setCustomContentView(inflate())
+      .setCustomBigContentView(inflate())
       .setContentIntent(contentIntent)
       /** the small relative-time badge next to the app name in the system header */
       .setWhen(punchInMillis)

@@ -105,62 +105,28 @@ function publishBanner(banner: InAppBanner) {
 }
 
 /**
- * Foreground notifications are handed to the header, background
- * ones to the system tray. Nothing is dropped either way.
+ * Every arrival goes to the system tray, app open or not - a push
+ * that only showed as an in-app banner while the app happened to be
+ * open was easy to miss and inconsistent with the tray being the
+ * one place to always find it. The header banner below is drawn in
+ * addition to the tray now, not instead of it.
  */
-/** a sender can ask for the tray even with the app open */
-function wantsSystemTray(data: any): boolean {
-  return (
-    data?.forceSystem === true ||
-    data?.forceSystem === "true" ||
-    /**
-     * The ongoing shift clock lives in the shade by definition. It
-     * also rewrites itself every minute, so letting it through the
-     * banner path would fling a notification across the header
-     * once a minute for the whole working day.
-     */
-    data?.shiftClock === true
-  );
-}
-
-/**
- * The shift clock repost every minute to keep its elapsed time
- * current, not to announce anything - it already has its own
- * silent, LOW-importance channel for exactly this reason. Forcing
- * it to the tray must not also force a sound/alert on every one of
- * those reposts.
- */
-function isSilentRepost(data: any): boolean {
-  return data?.shiftClock === true;
-}
-
 if (!IS_EXPO_GO) {
   Notifications.setNotificationHandler({
-    handleNotification: async (notification) => {
-      const data = notification.request.content.data;
-      const foreground = AppState.currentState === "active";
-      const forced = wantsSystemTray(data);
-      const inHeader = foreground && !forced;
-      const silent = isSilentRepost(data);
-
-      return {
-        shouldShowAlert: !inHeader,
-        shouldShowBanner: !inHeader,
-        shouldShowList: !inHeader,
-        shouldPlaySound: !inHeader && !silent,
-        shouldSetBadge: true,
-      };
-    },
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldShowBanner: true,
+      shouldShowList: true,
+      shouldPlaySound: true,
+      shouldSetBadge: true,
+    }),
   });
 
-  /** Turns every foreground arrival into a header banner. */
+  /** Turns every foreground arrival into a header banner, on top of the tray. */
   Notifications.addNotificationReceivedListener((notification) => {
     if (AppState.currentState !== "active") return;
 
     const content = notification.request.content;
-
-    /** a forced one went to the tray, so the header stays out of it */
-    if (wantsSystemTray(content.data)) return;
 
     publishBanner({
       id: `${notification.request.identifier || "push"}-${Date.now()}`,
