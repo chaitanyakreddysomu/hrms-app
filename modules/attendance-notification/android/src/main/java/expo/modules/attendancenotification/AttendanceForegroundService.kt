@@ -10,8 +10,6 @@ import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
-import android.os.SystemClock
-import android.widget.RemoteViews
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import java.text.SimpleDateFormat
@@ -23,23 +21,22 @@ private const val NOTIFICATION_ID = 7421
 private const val EXTRA_PUNCH_IN = "punchInMillis"
 
 /**
- * Keeps the "Attendance Active" notification alive and genuinely
- * non-swipeable by backing it with a real foreground service - a
- * plain NotificationManager.notify(), even with setOngoing(true),
- * can still be dismissed by a swipe on many Android versions/OEMs.
- * A foreground service's notification is what the OS actually
- * treats as non-dismissable, and stopWithTask="false" (manifest)
- * keeps it running even if the task is swiped from recents.
+ * The "Attendance Active" notification, backed by a real foreground
+ * service so it survives independently of the JS process, with
+ * CATEGORY_STOPWATCH + setOngoing + the built-in chronometer - the
+ * combination Samsung's (and stock Android's) compact "Live
+ * notification" pill renderer looks for, drawn by the system itself
+ * from standard notification fields.
  *
- * The body is a custom RemoteViews layout (160dp, title + punch-in
- * time on the left, a live Chronometer on the right) inside
- * DecoratedCustomViewStyle, which keeps Android's own header (app
- * icon, app name, the small relative-time badge) and only replaces
- * the content area below it.
+ * On a device/skin that honours that signal, swiping it away is a
+ * platform-level choice some OEMs allow regardless of ongoing status
+ * - reopening the app while still punched in re-syncs the open
+ * shift and starts this service again, which is the expected
+ * recovery rather than something this service fights to prevent.
  *
- * The chronometer still does all the ticking itself - this service
- * only posts the notification once, on start, and tears it down on
- * stop. There is no loop here, nothing polls, nothing reposts.
+ * The chronometer does all the ticking itself - this service only
+ * posts the notification once, on start, and tears it down on stop.
+ * There is no loop here, nothing polls, nothing reposts.
  */
 class AttendanceForegroundService : Service() {
   companion object {
@@ -88,32 +85,20 @@ class AttendanceForegroundService : Service() {
     stopForeground(STOP_FOREGROUND_REMOVE)
   }
 
+  /**
+   * No custom view here on purpose. Samsung's (and stock Android's)
+   * compact "Live notification" pill is drawn by the SYSTEM from a
+   * notification's standard fields - it specifically looks for an
+   * ongoing notification carrying CATEGORY_STOPWATCH (the same
+   * category a timer/stopwatch app would use) plus the built-in
+   * chronometer. A custom RemoteViews view is opaque to that
+   * renderer, which is exactly why the custom-layout version never
+   * got the pill treatment, only a regular (bigger) notification
+   * card.
+   */
   private fun buildNotification(punchInMillis: Long): Notification {
     val timeFormat = SimpleDateFormat("hh:mm a", Locale.getDefault())
     val punchInText = "Punched in " + timeFormat.format(Date(punchInMillis))
-
-    /**
-     * Chronometer runs on SystemClock.elapsedRealtime() (time since
-     * boot), not wall-clock time - converting the real punch-in
-     * instant into that time base is what lets the displayed timer
-     * already show the correct elapsed duration the moment this
-     * service (re)starts, rather than restarting from zero.
-     */
-    val bootTimeMillis = System.currentTimeMillis() - SystemClock.elapsedRealtime()
-    val chronometerBase = punchInMillis - bootTimeMillis
-
-    /**
-     * Two separate RemoteViews instances from the same layout - one
-     * for the collapsed state, one for expanded. Only setting the
-     * collapsed one left the expanded state to Android's own
-     * fallback, which is why it looked small/default until dragged
-     * open. Setting both makes the two states identical, so it
-     * always shows at the full fixed size.
-     */
-    fun inflate() = RemoteViews(packageName, R.layout.notification_attendance).apply {
-      setTextViewText(R.id.text_punch_in, punchInText)
-      setChronometer(R.id.live_timer, chronometerBase, null, true)
-    }
 
     val openApp = packageManager.getLaunchIntentForPackage(packageName)
     val contentIntent = openApp?.let {
@@ -122,18 +107,19 @@ class AttendanceForegroundService : Service() {
 
     return NotificationCompat.Builder(this, CHANNEL_ID)
       .setSmallIcon(applicationInfo.icon)
-      .setStyle(NotificationCompat.DecoratedCustomViewStyle())
-      .setCustomContentView(inflate())
-      .setCustomBigContentView(inflate())
+      .setContentTitle("Attendance Active")
+      .setContentText(punchInText)
       .setContentIntent(contentIntent)
-      /** the small relative-time badge next to the app name in the system header */
+      /** the chronometer counts up from this instant - the server's punch-in time, not a local timer */
       .setWhen(punchInMillis)
       .setShowWhen(true)
+      .setUsesChronometer(true)
+      /** the signal the system's Live Update / Live Notification renderer looks for */
+      .setCategory(NotificationCompat.CATEGORY_STOPWATCH)
       .setOngoing(true)
       .setOnlyAlertOnce(true)
       .setSilent(true)
       .setPriority(NotificationCompat.PRIORITY_LOW)
-      .setCategory(NotificationCompat.CATEGORY_STATUS)
       .build()
   }
 
