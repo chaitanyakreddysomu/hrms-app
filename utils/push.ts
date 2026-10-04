@@ -123,18 +123,31 @@ function wantsSystemTray(data: any): boolean {
   );
 }
 
+/**
+ * The shift clock repost every minute to keep its elapsed time
+ * current, not to announce anything - it already has its own
+ * silent, LOW-importance channel for exactly this reason. Forcing
+ * it to the tray must not also force a sound/alert on every one of
+ * those reposts.
+ */
+function isSilentRepost(data: any): boolean {
+  return data?.shiftClock === true;
+}
+
 if (!IS_EXPO_GO) {
   Notifications.setNotificationHandler({
     handleNotification: async (notification) => {
+      const data = notification.request.content.data;
       const foreground = AppState.currentState === "active";
-      const forced = wantsSystemTray(notification.request.content.data);
+      const forced = wantsSystemTray(data);
       const inHeader = foreground && !forced;
+      const silent = isSilentRepost(data);
 
       return {
         shouldShowAlert: !inHeader,
         shouldShowBanner: !inHeader,
         shouldShowList: !inHeader,
-        shouldPlaySound: !inHeader,
+        shouldPlaySound: !inHeader && !silent,
         shouldSetBadge: true,
       };
     },
