@@ -1,12 +1,12 @@
 {
-  "latestVersion": "1.1.3",
-  "downloadUrl": "https://github.com/chaitanyakreddysomu/hrms-app/releases/download/v1.1.3/ics-hrms-v1.1.3.apk",
-  "changelog": "v1.1.3 - Attendance notification is now one silent, live-ticking notification instead of a new alert every minute",
+  "latestVersion": "1.1.4",
+  "downloadUrl": "https://github.com/chaitanyakreddysomu/hrms-app/releases/download/v1.1.4/ics-hrms-v1.1.4.apk",
+  "changelog": "v1.1.4 - Attendance notification is now a bigger, unswipeable, live-ticking notification; update re-download bug fixed",
   "features": [
-    "Attendance notification now posts once at punch-in and ticks live on its own (Android's chronometer) - no more repeat alerts every minute, and it's silent",
-    "Notification fix: push notifications now reach your phone for leave approvals, holidays, payslips, document status, and broadcasts - not just the in-app notifications list",
-    "Attendance fix: punch-in/out time and \"hours worked today\" now show correctly",
-    "In-app update: download with a progress bar and install without leaving the app",
-    "Bug fixes"
+    "Attendance notification is now backed by a real foreground service so it can't be swiped away while punched in, and uses a bigger custom layout with a live chronometer on the right",
+    "Update check no longer re-downloads an already-downloaded version if you close the sheet before installing",
+    "Attendance notification posts once at punch-in and ticks live on its own (Android's chronometer) - no repeat alerts, and it's silent",
+    "Notification fix: push notifications now reach your phone for leave approvals, holidays, payslips, document status, and broadcasts",
+    "Attendance fix: punch-in/out time and \"hours worked today\" now show correctly"
   ]
 }
