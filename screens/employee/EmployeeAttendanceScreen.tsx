@@ -81,7 +81,7 @@ interface Props {
 
 export default function EmployeeAttendanceScreen({ self }: Props = {}) {
   const shellScroll = useShellScroll();
-  const shellTop = useShellContentTop();
+  const shellTop = useShellContentTop(16);
   const { showToast } = useToast();
 
   const now = new Date();
@@ -205,12 +205,6 @@ export default function EmployeeAttendanceScreen({ self }: Props = {}) {
             style={{ color: "#0F172A", fontSize: 15, fontWeight: "800" }}
           >
             {MONTHS[month]} {year}
-          </Text>
-
-          <Text
-            style={{ color: "#94A3B8", fontSize: 11, fontWeight: "600" }}
-          >
-            {records.length} records, swipe to change month
           </Text>
         </View>
 

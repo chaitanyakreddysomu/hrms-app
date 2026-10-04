@@ -18,7 +18,6 @@ import PillHeader from "./PillHeader";
 import { InAppBanner, onInAppBanner } from "../utils/push";
 import PillTabBar, { PillTab } from "./PillTabBar";
 import HeaderMenu, { HeaderMenuItem } from "./HeaderMenu";
-import GlassSurface from "./GlassSurface";
 import ChangePasswordModal from "./ChangePasswordModal";
 /** the header height, shared with the pages that clear it */
 import { BAR_HEIGHT } from "./shellMetrics";
@@ -623,24 +622,11 @@ function Shell({ tabs, initialTabKey, logo, navigateRef, switcher }: Props) {
             onPress={() => togglePicker(false)}
           />
           {/**
-           * Real glass rather than a flat translucent white. A
-           * plain rgba fill leaves whatever is behind it perfectly
-           * sharp, so the page's own text reads straight through
-           * the panel and collides with the rows. The blur is what
-           * keeps it see-through without being readable.
-           *
-           * `specular` is off: the catch light is sized off the
-           * radius and belongs on a small round control, not on a
-           * panel this tall.
+           * Plain white, same reasoning as the header and tab bar:
+           * Android's blur fallback was unreliable across devices,
+           * so this panel is a solid surface instead of glass.
            */}
-          <GlassSurface
-            radius={28}
-            intensity={70}
-            specular={false}
-            elevated={false}
-            blurTarget={contentRef}
-            style={styles.pickerCard}
-          >
+          <View style={[styles.pickerCard, styles.pickerCardSolid]}>
             <Text style={styles.pickerTitle}>
               {tab.pickerTitle || tab.label}
             </Text>
@@ -696,7 +682,7 @@ function Shell({ tabs, initialTabKey, logo, navigateRef, switcher }: Props) {
                 );
               })}
             </ScrollView>
-          </GlassSurface>
+          </View>
         </Animated.View>
       )}
 
@@ -792,17 +778,17 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
   },
-  /**
-   * No background and no shadow of its own: GlassSurface paints
-   * the fill, the rim and the blur. A flat white left here would
-   * sit on top of the blur and undo it, and the elevation shadow
-   * would show through a surface this transparent.
-   */
   pickerCard: {
     flex: 1,
     marginTop: 8,
     paddingHorizontal: 14,
     paddingTop: 18,
+  },
+  pickerCardSolid: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 28,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(15,23,42,0.08)",
   },
   pickerTitle: {
     color: "#94A3B8",

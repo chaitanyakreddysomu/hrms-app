@@ -90,7 +90,7 @@ const spanOf = (leave: { startDate?: string; endDate?: string }) => {
 
 export default function HrLeavesScreen() {
   const shellScroll = useShellScroll();
-  const shellTop = useShellContentTop();
+  const shellTop = useShellContentTop(16);
   const { showToast } = useToast();
 
   const [leaves, setLeaves] = useState<Leave[]>([]);

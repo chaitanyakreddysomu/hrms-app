@@ -65,7 +65,7 @@ export default function AdminBirthdaysScreen({ navigation, embedded }: Props & {
   /** the shell header search field drives this page */
   useShellSearch(setSearchTerm);
   const shellScroll = useShellScroll();
-  const shellTop = useShellContentTop();
+  const shellTop = useShellContentTop(16);
 
   const requestIdRef = useRef(0);
 

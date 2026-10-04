@@ -41,7 +41,7 @@ interface Props {
 
 export default function HrMyHomeScreen({ name, onNavigate }: Props) {
   const shellScroll = useShellScroll();
-  const shellTop = useShellContentTop();
+  const shellTop = useShellContentTop(16);
   const { showToast } = useToast();
 
   const [today, setToday] = useState<any>(null);

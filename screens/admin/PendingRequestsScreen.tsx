@@ -57,7 +57,7 @@ export default function PendingRequestsScreen({ navigation, embedded }: Props & 
   /** the shell header search field drives this page */
   useShellSearch(setSearchTerm);
   const shellScroll = useShellScroll();
-  const shellTop = useShellContentTop();
+  const shellTop = useShellContentTop(16);
   const [roleFilter, setRoleFilter] = useState("ALL");
   const [selectedRequest, setSelectedRequest] = useState<PendingUser | null>(null);
   const [actionLoading, setActionLoading] = useState(false);

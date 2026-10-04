@@ -73,7 +73,7 @@ export default function EmployeePayslipsScreen({
   profilePath = "/api/employee/profile",
 }: Props = {}) {
   const shellScroll = useShellScroll();
-  const shellTop = useShellContentTop();
+  const shellTop = useShellContentTop(16);
   const { showToast } = useToast();
 
   const thisYear = new Date().getFullYear();
@@ -605,12 +605,6 @@ export default function EmployeePayslipsScreen({
               style={{ color: "#0F172A", fontSize: 15, fontWeight: "800" }}
             >
               {year}
-            </Text>
-
-            <Text
-              style={{ color: "#94A3B8", fontSize: 11, fontWeight: "600" }}
-            >
-              {payslips.length} payslips, swipe to change year
             </Text>
           </View>
 

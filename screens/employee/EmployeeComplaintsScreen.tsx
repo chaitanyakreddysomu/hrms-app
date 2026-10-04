@@ -60,7 +60,7 @@ export default function EmployeeComplaintsScreen({
   path = "/api/employee/complaints",
 }: Props = {}) {
   const shellScroll = useShellScroll();
-  const shellTop = useShellContentTop();
+  const shellTop = useShellContentTop(16);
   const { showToast } = useToast();
 
   const [complaints, setComplaints] = useState<Complaint[]>([]);

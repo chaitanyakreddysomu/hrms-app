@@ -59,7 +59,7 @@ interface Payslip {
 
 export default function HrTeamPayslipsScreen() {
   const shellScroll = useShellScroll();
-  const shellTop = useShellContentTop();
+  const shellTop = useShellContentTop(16);
   const { showToast } = useToast();
 
   const thisYear = new Date().getFullYear();

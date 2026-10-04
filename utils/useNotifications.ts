@@ -10,7 +10,6 @@ import {
   openedFromPush,
   registerForPush,
   getPushStatus,
-  showInAppBanner,
 } from "./push";
 
 /**
@@ -68,16 +67,6 @@ export function useNotifications({ countPath, onOpen }: Options) {
     registerForPush().then(() => {
       const status = getPushStatus();
       console.log("Push registration:", JSON.stringify(status));
-
-      /**
-       * TEMPORARY, LOCAL ONLY: surfaces the registration outcome
-       * on screen so it can be read off the phone directly instead
-       * of a terminal. Do not commit this.
-       */
-      showInAppBanner(
-        "Push status: " + status.step,
-        status.detail || status.token || "(no detail)"
-      );
     });
 
     refresh();

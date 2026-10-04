@@ -703,7 +703,7 @@ const styles = StyleSheet.create({
     gap: 10,
     height: 56,
     paddingHorizontal: 18,
-    borderRadius: 28,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: "rgba(17,24,39,0.10)",
     backgroundColor: "rgba(255,255,255,0.55)",

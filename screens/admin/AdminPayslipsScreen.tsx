@@ -114,7 +114,7 @@ export default function AdminPayslipsScreen({ navigation, embedded }: Props & { 
   /** the shell header search field drives this page */
   useShellSearch(setSearchTerm);
   const shellScroll = useShellScroll();
-  const shellTop = useShellContentTop();
+  const shellTop = useShellContentTop(16);
 
   const [monthFilter, setMonthFilter] = useState("All");
   const [yearFilter, setYearFilter] = useState("All");

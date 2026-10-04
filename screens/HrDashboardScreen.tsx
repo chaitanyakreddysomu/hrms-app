@@ -20,6 +20,7 @@ import HrMyHomeScreen from "./hr/HrMyHomeScreen";
 import HrBirthdaysScreen from "./hr/HrBirthdaysScreen";
 import HrReferralsScreen from "./hr/HrReferralsScreen";
 import HrTeamPayslipsScreen from "./hr/HrTeamPayslipsScreen";
+import AdminHolidaysScreen from "./admin/AdminHolidaysScreen";
 
 import EmployeeAttendanceScreen from "./employee/EmployeeAttendanceScreen";
 import EmployeeLeavesScreen from "./employee/EmployeeLeavesScreen";
@@ -113,6 +114,27 @@ export default function HrDashboardScreen({ route, navigation }: Props) {
   }, []);
 
   const logout = () => setConfirmLogout(true);
+
+  /**
+   * Embedded pages still expect stack props. They only reach for
+   * `goBack`, which must not drop the user out of the shell.
+   */
+  const childNav = useMemo(
+    () =>
+      ({
+        ...navigation,
+        goBack: () => {
+          if (navigation.canGoBack()) navigation.goBack();
+        },
+      } as any),
+    [navigation]
+  );
+
+  const childProps = () => ({
+    embedded: true as const,
+    navigation: childNav,
+    route: { key: "embedded", name: "embedded", params: undefined } as any,
+  });
 
   /** the rows the profile tab offers on a long press */
   const profileMenu = [
@@ -283,8 +305,20 @@ export default function HrDashboardScreen({ route, navigation }: Props) {
             title: "Holidays",
             subtitle: "Company calendar",
             icon: "sunny-outline",
+            menu: [
+              {
+                key: "addHoliday",
+                label: "Add Holiday",
+                icon: "add-circle-outline",
+                action: "addHoliday",
+              },
+            ],
             render: ({ reloadKey }) => (
-              <EmployeeHolidaysScreen key={reloadKey} />
+              <AdminHolidaysScreen
+                key={reloadKey}
+                basePath="/api/hr/holidays"
+                {...childProps()}
+              />
             ),
           },
           {
@@ -306,29 +340,6 @@ export default function HrDashboardScreen({ route, navigation }: Props) {
                 key={reloadKey}
                 listPath="/api/hr/notifications/my"
                 readPath="/api/hr/notifications"
-              />
-            ),
-          },
-        ],
-      },
-      {
-        key: "profile",
-        label: "Profile",
-        icon: "person-outline",
-        activeIcon: "person",
-        imageUri: user.profileImage,
-        pages: [
-          {
-            key: "profile",
-            title: "Profile",
-            subtitle: user.role,
-            icon: "person-outline",
-            menu: profileMenu,
-            render: ({ reloadKey }) => (
-              <EmployeeProfileScreen
-                key={reloadKey}
-                profilePath="/api/hr/profile"
-                imagePath="/api/hr/profile-image"
               />
             ),
           },

@@ -100,7 +100,7 @@ export default function ProfileScreen({ navigation, embedded }: Props & { embedd
 
   /** feeds the shell header backdrop */
   const shellScroll = useShellScroll();
-  const shellTop = useShellContentTop();
+  const shellTop = useShellContentTop(16);
 
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
   const [securityLoading, setSecurityLoading] = useState(false);
@@ -297,6 +297,8 @@ export default function ProfileScreen({ navigation, embedded }: Props & { embedd
     profileImage: null,
   });
 
+
+  const [loading, setLoading] = useState(true);
 
   const [editProfileModalOpen, setEditProfileModalOpen] = useState(false);
 const [savingProfile, setSavingProfile] = useState(false);
@@ -725,6 +727,8 @@ const handleSaveProfile = async () => {
         }
       } catch (err) {
         console.error("Failed to load profile details:", err);
+      } finally {
+        setLoading(false);
       }
     }
 
@@ -1192,6 +1196,17 @@ const handleSaveProfile = async () => {
 
   /** exposes the editor to the shell header menu */
   useRegisterScreenAction("editProfile", openEditProfile);
+
+  if (loading) {
+    return (
+      <View style={{ flex: 1, paddingTop: shellTop, alignItems: "center", paddingVertical: 60 }}>
+        <ActivityIndicator color="#2563EB" />
+        <Text style={{ color: "#94A3B8", fontSize: 12, fontWeight: "600", marginTop: 10 }}>
+          Loading profile
+        </Text>
+      </View>
+    );
+  }
 
   return (
     <SafeAreaView edges={embedded ? [] : undefined} className="flex-1 bg-gray-50">

@@ -120,7 +120,7 @@ export default function AdminHomeScreen({
   onOpenComplaints,
 }: Props) {
   const shellScroll = useShellScroll();
-  const shellTop = useShellContentTop();
+  const shellTop = useShellContentTop(16);
 
   const [data, setData] = useState<DashboardData>(EMPTY);
   const [loading, setLoading] = useState(true);

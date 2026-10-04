@@ -60,7 +60,7 @@ const ROLE_STYLE: Record<
 
 export default function HrRequestsScreen() {
   const shellScroll = useShellScroll();
-  const shellTop = useShellContentTop();
+  const shellTop = useShellContentTop(16);
   const { showToast } = useToast();
 
   const [requests, setRequests] = useState<Request[]>([]);

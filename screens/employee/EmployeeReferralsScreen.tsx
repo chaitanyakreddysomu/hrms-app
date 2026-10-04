@@ -67,7 +67,7 @@ const BLANK = {
 
 export default function EmployeeReferralsScreen() {
   const shellScroll = useShellScroll();
-  const shellTop = useShellContentTop();
+  const shellTop = useShellContentTop(16);
   const { showToast } = useToast();
 
   const [referrals, setReferrals] = useState<Referral[]>([]);
@@ -315,9 +315,6 @@ export default function EmployeeReferralsScreen() {
                     numberOfLines={1}
                   >
                     {referral.role || "Role not set"}
-                    {referral.currentCompany
-                      ? `  ${referral.currentCompany}`
-                      : ""}
                   </Text>
                 </View>
 

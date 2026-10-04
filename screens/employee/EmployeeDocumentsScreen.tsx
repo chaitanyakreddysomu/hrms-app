@@ -127,7 +127,7 @@ export default function EmployeeDocumentsScreen({
   previewPath = "/api/employee/documents/preview",
 }: Props = {}) {
   const shellScroll = useShellScroll();
-  const shellTop = useShellContentTop();
+  const shellTop = useShellContentTop(16);
   const { showToast } = useToast();
 
   const [docs, setDocs] = useState<any[]>([]);

@@ -86,7 +86,7 @@ const statusDot = (status: string) => {
 
 export default function HrEmployeesScreen() {
   const shellScroll = useShellScroll();
-  const shellTop = useShellContentTop();
+  const shellTop = useShellContentTop(16);
   const { showToast } = useToast();
 
   const [employees, setEmployees] = useState<Employee[]>([]);

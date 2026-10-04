@@ -69,7 +69,7 @@ export default function EmployeeProfileScreen({
   savePath,
 }: Props = {}) {
   const shellScroll = useShellScroll();
-  const shellTop = useShellContentTop();
+  const shellTop = useShellContentTop(16);
   const { showToast } = useToast();
 
   const [profile, setProfile] = useState<any>(null);
@@ -91,7 +91,15 @@ export default function EmployeeProfileScreen({
     bloodGroup: "",
     emergencyName: "",
     emergencyPhone: "",
+    bankHolderName: "",
+    bankAccountNumber: "",
+    bankIfsc: "",
+    bankName: "",
+    bankBranch: "",
   });
+
+  /** auto-filled from the IFSC lookup, same as the web profile page */
+  const [fetchingBankDetails, setFetchingBankDetails] = useState(false);
 
   /* ============================================================
      BIOMETRIC LOGIN
@@ -442,6 +450,11 @@ export default function EmployeeProfileScreen({
       bloodGroup: profile.bloodGroup || "",
       emergencyName: profile.emergencyContact?.name || "",
       emergencyPhone: profile.emergencyContact?.phone || "",
+      bankHolderName: profile.bankDetails?.holderName || "",
+      bankAccountNumber: profile.bankDetails?.accountNumber || "",
+      bankIfsc: profile.bankDetails?.ifsc || "",
+      bankName: profile.bankDetails?.bankName || "",
+      bankBranch: profile.bankDetails?.branch || "",
     });
 
     setPicked(null);
@@ -472,6 +485,36 @@ export default function EmployeeProfileScreen({
     });
 
     if (!result.canceled) setPicked(result.assets[0]);
+  };
+
+  /**
+   * Same lookup the web profile page uses: once the IFSC is a full 11
+   * characters, fetch the bank name and branch so the person never
+   * types them by hand.
+   */
+  const handleIfscChange = async (raw: string) => {
+    const value = raw.toUpperCase();
+    setForm((f) => ({ ...f, bankIfsc: value }));
+
+    if (value.length !== 11) return;
+
+    setFetchingBankDetails(true);
+    try {
+      const response = await fetch(`https://ifsc.razorpay.com/${value}`);
+      if (response.ok) {
+        const data = await response.json();
+        setForm((f) => ({
+          ...f,
+          bankIfsc: value,
+          bankName: data.BANK,
+          bankBranch: data.BRANCH,
+        }));
+      }
+    } catch {
+      // offline or an invalid code - leave bank name/branch as they were
+    } finally {
+      setFetchingBankDetails(false);
+    }
   };
 
   const save = async () => {
@@ -537,6 +580,13 @@ export default function EmployeeProfileScreen({
             name: form.emergencyName,
             phone: form.emergencyPhone,
           },
+          bankDetails: {
+            holderName: form.bankHolderName,
+            accountNumber: form.bankAccountNumber,
+            ifsc: form.bankIfsc,
+            bankName: form.bankName,
+            branch: form.bankBranch,
+          },
         }),
       });
 
@@ -579,7 +629,13 @@ export default function EmployeeProfileScreen({
     }
   };
 
-  if (loading) return <Loading label="Loading profile" />;
+  if (loading) {
+    return (
+      <View style={{ flex: 1, paddingTop: shellTop }}>
+        <Loading label="Loading profile" />
+      </View>
+    );
+  }
 
   return (
     <>
@@ -677,6 +733,16 @@ export default function EmployeeProfileScreen({
           <Row label="Date of birth" value={formatDate(profile?.dob)} />
           <Row label="Blood group" value={profile?.bloodGroup} />
           <Row label="UAN" value={profile?.uan} last />
+        </Card>
+
+        <SectionTitle>Bank details</SectionTitle>
+
+        <Card>
+          <Row label="Account holder" value={profile?.bankDetails?.holderName} />
+          <Row label="Account number" value={profile?.bankDetails?.accountNumber} />
+          <Row label="IFSC" value={profile?.bankDetails?.ifsc} />
+          <Row label="Bank name" value={profile?.bankDetails?.bankName} />
+          <Row label="Branch" value={profile?.bankDetails?.branch} last />
         </Card>
 
         <SectionTitle>Emergency contact</SectionTitle>
@@ -1582,6 +1648,60 @@ export default function EmployeeProfileScreen({
                 })}
               </View>
 
+              <Text
+                style={{
+                  color: "#374151",
+                  fontSize: 12,
+                  fontWeight: "700",
+                  marginTop: 24,
+                  marginBottom: 8,
+                }}
+              >
+                Bank details
+              </Text>
+
+              <Field
+                label="Account holder name"
+                value={form.bankHolderName}
+                onChangeText={(v) =>
+                  setForm((f) => ({ ...f, bankHolderName: v }))
+                }
+              />
+
+              <Field
+                label="Account number"
+                value={form.bankAccountNumber}
+                keyboardType="default"
+                onChangeText={(v) =>
+                  setForm((f) => ({ ...f, bankAccountNumber: v }))
+                }
+              />
+
+              <Field
+                label="IFSC code"
+                value={form.bankIfsc}
+                placeholder="e.g. SBIN0011991"
+                onChangeText={handleIfscChange}
+              />
+
+              <Field
+                label="Bank name"
+                value={form.bankName}
+                editable={false}
+                loading={fetchingBankDetails}
+                placeholder="Auto-filled from IFSC"
+                onChangeText={() => {}}
+              />
+
+              <Field
+                label="Branch"
+                value={form.bankBranch}
+                editable={false}
+                loading={fetchingBankDetails}
+                placeholder="Auto-filled from IFSC"
+                onChangeText={() => {}}
+              />
+
               <Field
                 label="Emergency contact name"
                 value={form.emergencyName}
@@ -1620,6 +1740,8 @@ function Field({
   placeholder,
   keyboardType = "default",
   multiline,
+  editable = true,
+  loading = false,
 }: {
   label: string;
   value: string;
@@ -1627,6 +1749,10 @@ function Field({
   placeholder?: string;
   keyboardType?: "default" | "phone-pad" | "email-address";
   multiline?: boolean;
+  /** false for a value that is only ever auto-filled, e.g. bank name from the IFSC lookup */
+  editable?: boolean;
+  /** shows a small spinner in place of typing while the value is being auto-filled */
+  loading?: boolean;
 }) {
   return (
     <View style={{ marginTop: 16 }}>
@@ -1641,28 +1767,40 @@ function Field({
         {label}
       </Text>
 
-      <TextInput
-        value={value}
-        onChangeText={onChangeText}
-        placeholder={placeholder}
-        placeholderTextColor="#9CA3AF"
-        keyboardType={keyboardType}
-        multiline={multiline}
-        style={{
-          minHeight: multiline ? 84 : 48,
-          borderRadius: 14,
-          borderWidth: 1,
-          borderColor: "#E5E7EB",
-          backgroundColor: "#F9FAFB",
-          paddingHorizontal: 14,
-          paddingTop: multiline ? 12 : 0,
-          paddingBottom: multiline ? 12 : 0,
-          color: "#111827",
-          fontSize: 14,
-          fontWeight: "500",
-          textAlignVertical: multiline ? "top" : "center",
-        }}
-      />
+      <View style={{ justifyContent: "center" }}>
+        <TextInput
+          value={value}
+          onChangeText={onChangeText}
+          placeholder={placeholder}
+          placeholderTextColor="#9CA3AF"
+          keyboardType={keyboardType}
+          multiline={multiline}
+          editable={editable && !loading}
+          style={{
+            minHeight: multiline ? 84 : 48,
+            borderRadius: 14,
+            borderWidth: 1,
+            borderColor: "#E5E7EB",
+            backgroundColor: editable ? "#F9FAFB" : "#F1F5F9",
+            paddingHorizontal: 14,
+            paddingRight: loading ? 40 : 14,
+            paddingTop: multiline ? 12 : 0,
+            paddingBottom: multiline ? 12 : 0,
+            color: editable ? "#111827" : "#64748B",
+            fontSize: 14,
+            fontWeight: "500",
+            textAlignVertical: multiline ? "top" : "center",
+          }}
+        />
+
+        {loading && (
+          <ActivityIndicator
+            size="small"
+            color="#2563EB"
+            style={{ position: "absolute", right: 14 }}
+          />
+        )}
+      </View>
     </View>
   );
 }

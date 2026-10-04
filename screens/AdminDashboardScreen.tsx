@@ -324,6 +324,14 @@ export default function AdminDashboardScreen({ route, navigation }: Props) {
             title: "Holidays",
             subtitle: "Company calendar",
             icon: "airplane-outline",
+            menu: [
+              {
+                key: "addHoliday",
+                label: "Add Holiday",
+                icon: "add-circle-outline",
+                action: "addHoliday",
+              },
+            ],
             render: ({ reloadKey }) => (
               <AdminHolidaysScreen key={reloadKey} {...childProps()} />
             ),

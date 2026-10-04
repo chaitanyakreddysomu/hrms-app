@@ -63,7 +63,7 @@ export default function AdminLeavesScreen({ navigation, embedded }: Props & { em
   /** the shell header search field drives this page */
   useShellSearch(setSearchTerm);
   const shellScroll = useShellScroll();
-  const shellTop = useShellContentTop();
+  const shellTop = useShellContentTop(16);
 
   const [statusFilter, setStatusFilter] = useState("All");
   const [typeFilter, setTypeFilter] = useState("All");

@@ -92,7 +92,7 @@ export default function AdminBankDetailsScreen({ navigation, embedded }: Props &
   /** the shell header search field drives this page */
   useShellSearch(setSearchTerm);
   const shellScroll = useShellScroll();
-  const shellTop = useShellContentTop();
+  const shellTop = useShellContentTop(16);
 
   const [roleFilter, setRoleFilter] = useState("ALL");
   const [statusFilter, setStatusFilter] = useState("ALL");

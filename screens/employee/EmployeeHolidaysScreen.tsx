@@ -41,7 +41,7 @@ const TYPE_TONE: Record<string, ToneName> = {
 
 export default function EmployeeHolidaysScreen() {
   const shellScroll = useShellScroll();
-  const shellTop = useShellContentTop();
+  const shellTop = useShellContentTop(16);
   const { showToast } = useToast();
 
   const [holidays, setHolidays] = useState<Holiday[]>([]);

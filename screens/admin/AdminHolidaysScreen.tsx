@@ -19,7 +19,10 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../../navigation/AppNavigator";
 import { getAuthSession } from "../../utils/authStorage";
-import { useShellScroll } from "../../components/ScreenActions";
+import {
+  useRegisterScreenAction,
+  useShellScroll,
+} from "../../components/ScreenActions";
 import { useShellContentTop } from "../../components/shellMetrics";
 import { apiFetch, resetBaseUrl } from "../../utils/api";
 import ModalDismiss from "../../components/ModalDismiss";
@@ -70,9 +73,13 @@ const toISO = (d: Date) => {
   return `${d.getFullYear()}-${m}-${day}`;
 };
 
-export default function AdminHolidaysScreen({ navigation, embedded }: Props & { embedded?: boolean }) {
+export default function AdminHolidaysScreen({
+  navigation,
+  embedded,
+  basePath = "/api/admin/holidays",
+}: Props & { embedded?: boolean; basePath?: string }) {
   const shellScroll = useShellScroll();
-  const shellTop = useShellContentTop();
+  const shellTop = useShellContentTop(16);
 
   const [holidays, setHolidays] = useState<Holiday[]>([]);
   const [loading, setLoading] = useState(true);
@@ -116,7 +123,7 @@ export default function AdminHolidaysScreen({ navigation, embedded }: Props & { 
         return;
       }
 
-      const res = await apiFetch(`/api/admin/holidays`, session.token);
+      const res = await apiFetch(basePath, session.token);
 
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
@@ -171,6 +178,12 @@ export default function AdminHolidaysScreen({ navigation, embedded }: Props & { 
     setTypeOpen(false);
   };
 
+  /** reached from the header's three-dot menu */
+  useRegisterScreenAction("addHoliday", () => {
+    resetForm();
+    setFormOpen(true);
+  });
+
   const saveHoliday = async () => {
     if (!formName.trim()) return;
     setSaving(true);
@@ -178,7 +191,7 @@ export default function AdminHolidaysScreen({ navigation, embedded }: Props & { 
       const session = await getAuthSession();
       if (!session?.token) return;
 
-      const path = editingId ? `/api/admin/holidays/${editingId}` : `/api/admin/holidays`;
+      const path = editingId ? `${basePath}/${editingId}` : basePath;
 
       const res = await apiFetch(path, session.token, {
         method: editingId ? "PATCH" : "POST",
@@ -207,7 +220,7 @@ export default function AdminHolidaysScreen({ navigation, embedded }: Props & { 
       const session = await getAuthSession();
       if (!session?.token) return;
 
-      const res = await apiFetch(`/api/admin/holidays/${id}`, session.token, { method: "DELETE" });
+      const res = await apiFetch(`${basePath}/${id}`, session.token, { method: "DELETE" });
 
       if (res.ok) {
         setSelectedHoliday(null);

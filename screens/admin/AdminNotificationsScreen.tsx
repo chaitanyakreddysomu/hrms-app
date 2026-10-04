@@ -122,7 +122,7 @@ export default function AdminNotificationsScreen({
   onUnreadChange,
 }: Props) {
   const shellScroll = useShellScroll();
-  const shellTop = useShellContentTop();
+  const shellTop = useShellContentTop(16);
 
   const [items, setItems] = useState<Notification[]>([]);
   const [filter, setFilter] = useState("All");
