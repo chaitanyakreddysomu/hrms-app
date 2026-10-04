@@ -19,6 +19,7 @@ import java.util.Locale
 private const val CHANNEL_ID = "attendance"
 private const val NOTIFICATION_ID = 7421
 private const val EXTRA_PUNCH_IN = "punchInMillis"
+private const val ACTION_STOP = "expo.modules.attendancenotification.STOP"
 
 /**
  * The "Attendance Active" notification, backed by a real foreground
@@ -40,20 +41,41 @@ private const val EXTRA_PUNCH_IN = "punchInMillis"
  */
 class AttendanceForegroundService : Service() {
   companion object {
+    /** the open shift's punch-in instant, kept only for the "Work completed" summary on stop */
+    @Volatile private var activePunchInMillis: Long? = null
+
     fun start(context: Context, punchInMillis: Long) {
       val intent = Intent(context, AttendanceForegroundService::class.java)
         .putExtra(EXTRA_PUNCH_IN, punchInMillis)
       ContextCompat.startForegroundService(context, intent)
     }
 
+    /** Swaps the ongoing pill for a one-time "Work completed" summary, then lets the service die. */
     fun stop(context: Context) {
-      context.stopService(Intent(context, AttendanceForegroundService::class.java))
+      val intent = Intent(context, AttendanceForegroundService::class.java)
+        .setAction(ACTION_STOP)
+      ContextCompat.startForegroundService(context, intent)
     }
   }
+
+  /** set once stop() has handed the final notification over; onDestroy must not then remove it */
+  private var detached = false
 
   override fun onBind(intent: Intent?): IBinder? = null
 
   override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+    if (intent?.action == ACTION_STOP) {
+      ensureChannel()
+      val completed = buildCompletedNotification(activePunchInMillis)
+      /** every startForegroundService call needs a matching startForeground, even the one that's about to detach */
+      startForeground(NOTIFICATION_ID, completed)
+      stopForeground(STOP_FOREGROUND_DETACH)
+      detached = true
+      activePunchInMillis = null
+      stopSelf()
+      return START_NOT_STICKY
+    }
+
     val punchInMillis = intent?.getLongExtra(EXTRA_PUNCH_IN, -1L) ?: -1L
 
     if (punchInMillis <= 0) {
@@ -61,6 +83,7 @@ class AttendanceForegroundService : Service() {
       return START_NOT_STICKY
     }
 
+    activePunchInMillis = punchInMillis
     ensureChannel()
     val notification = buildNotification(punchInMillis)
 
@@ -82,7 +105,10 @@ class AttendanceForegroundService : Service() {
 
   override fun onDestroy() {
     super.onDestroy()
-    stopForeground(STOP_FOREGROUND_REMOVE)
+    /** a normal kill (app closed, task swiped) should still clear the pill - only an explicit stop() leaves a notification behind */
+    if (!detached) {
+      stopForeground(STOP_FOREGROUND_REMOVE)
+    }
   }
 
   /**
@@ -120,6 +146,44 @@ class AttendanceForegroundService : Service() {
       .setOnlyAlertOnce(true)
       .setSilent(true)
       .setPriority(NotificationCompat.PRIORITY_LOW)
+      /**
+       * Android 16's (API 36) formal Live Update API - androidx.core
+       * 1.17+ no-ops this below API 36, so this is safe on every
+       * version this app supports. Needs POST_PROMOTED_NOTIFICATIONS
+       * (declared in the manifest), setOngoing(true) and a
+       * contentTitle, all already true above.
+       */
+      .setRequestPromotedOngoing(true)
+      .build()
+  }
+
+  /** The one-shot "Work completed" notification left behind after punch-out - no longer ongoing, dismissable like any normal notification. */
+  private fun buildCompletedNotification(punchInMillis: Long?): Notification {
+    val timeFormat = SimpleDateFormat("hh:mm a", Locale.getDefault())
+    val text = if (punchInMillis != null && punchInMillis > 0) {
+      val elapsedMinutes = (System.currentTimeMillis() - punchInMillis) / 60000
+      val hours = elapsedMinutes / 60
+      val minutes = elapsedMinutes % 60
+      "${timeFormat.format(Date(punchInMillis))} • %dh %02dm".format(hours, minutes)
+    } else {
+      "Shift ended"
+    }
+
+    val openApp = packageManager.getLaunchIntentForPackage(packageName)
+    val contentIntent = openApp?.let {
+      PendingIntent.getActivity(this, 0, it, PendingIntent.FLAG_IMMUTABLE)
+    }
+
+    return NotificationCompat.Builder(this, CHANNEL_ID)
+      .setSmallIcon(applicationInfo.icon)
+      .setContentTitle("Work completed")
+      .setContentText(text)
+      .setContentIntent(contentIntent)
+      .setAutoCancel(true)
+      .setOngoing(false)
+      .setOnlyAlertOnce(true)
+      .setSilent(true)
+      .setPriority(NotificationCompat.PRIORITY_DEFAULT)
       .build()
   }
 

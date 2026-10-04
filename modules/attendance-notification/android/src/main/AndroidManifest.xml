@@ -2,6 +2,8 @@
     package="expo.modules.attendancenotification">
   <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
   <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+  <!-- Android 16 (API 36): lets the attendance notification request the system's promoted/Live Update treatment -->
+  <uses-permission android:name="android.permission.POST_PROMOTED_NOTIFICATIONS" />
 
   <application>
     <service
