@@ -1,12 +1,12 @@
 {
-  "latestVersion": "1.1.6",
-  "downloadUrl": "https://github.com/chaitanyakreddysomu/hrms-app/releases/download/v1.1.6/ics-hrms-v1.1.6.apk",
-  "changelog": "v1.1.6 - Attendance Live Notification now requests Android 16's official promoted/Live Update treatment, and shows a final \"Work completed\" summary on punch-out",
+  "latestVersion": "1.1.7",
+  "downloadUrl": "https://github.com/chaitanyakreddysomu/hrms-app/releases/download/v1.1.7/ics-hrms-v1.1.7.apk",
+  "changelog": "v1.1.7 - Live Update content/eligibility fixes for the attendance notification, and an update-sheet scroll fix",
   "features": [
+    "Attendance notification now splits into \"Working\" (status) and \"Punched in ...\" (detail), matching Android's Live Update content shape",
+    "Attendance notification channel raised from Low to Default importance, which Android 16 requires for Live Update eligibility",
     "Attendance notification now requests Android 16's formal Live Update (promoted ongoing) treatment, on top of the Samsung/Android compact pill it already had",
     "Punching out now leaves a one-time \"Work completed\" summary (punch-in time and hours worked) instead of just clearing the notification",
-    "Attendance notification now uses Android's own Live Notification pill (Samsung's \"Live notifications\") instead of a custom card - drawn by the system itself, with a live chronometer",
-    "Push notifications now always show in the notification tray, even while the app is open - not just as an in-app banner",
-    "Update check no longer re-downloads an already-downloaded version if you close the sheet before installing"
+    "The update sheet's \"What's new\" list no longer pushes the download progress bar out of view on a long changelog"
   ]
 }

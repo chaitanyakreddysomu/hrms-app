@@ -211,16 +211,22 @@ export default function UpdateSheet({ visible, onClose }: Props) {
                     <View style={styles.featureList}>
                       <Text style={styles.featureHeading}>What's new</Text>
 
-                      {result.features.map((feature, index) => (
-                        <View key={index} style={styles.featureRow}>
-                          <Ionicons
-                            name="checkmark-circle-outline"
-                            size={15}
-                            color="#2563EB"
-                          />
-                          <Text style={styles.featureText}>{feature}</Text>
-                        </View>
-                      ))}
+                      <ScrollView
+                        style={styles.featureScroll}
+                        nestedScrollEnabled
+                        showsVerticalScrollIndicator
+                      >
+                        {result.features.map((feature, index) => (
+                          <View key={index} style={styles.featureRow}>
+                            <Ionicons
+                              name="checkmark-circle-outline"
+                              size={15}
+                              color="#2563EB"
+                            />
+                            <Text style={styles.featureText}>{feature}</Text>
+                          </View>
+                        ))}
+                      </ScrollView>
                     </View>
                   )}
 
@@ -419,6 +425,10 @@ const styles = StyleSheet.create({
   featureList: {
     marginTop: 16,
     paddingHorizontal: 2,
+  },
+  /** capped so a long list scrolls on its own, instead of pushing the progress bar below the fold */
+  featureScroll: {
+    maxHeight: 150,
   },
   featureHeading: {
     color: "#0F172A",

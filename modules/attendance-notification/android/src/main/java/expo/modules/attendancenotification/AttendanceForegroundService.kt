@@ -134,7 +134,10 @@ class AttendanceForegroundService : Service() {
     return NotificationCompat.Builder(this, CHANNEL_ID)
       .setSmallIcon(applicationInfo.icon)
       .setContentTitle("Attendance Active")
-      .setContentText(punchInText)
+      /** primary/status line for the Live Update surface */
+      .setContentText("Working")
+      /** secondary line - shown under "Working" in the expanded shade view */
+      .setSubText(punchInText)
       .setContentIntent(contentIntent)
       /** the chronometer counts up from this instant - the server's punch-in time, not a local timer */
       .setWhen(punchInMillis)
@@ -147,11 +150,14 @@ class AttendanceForegroundService : Service() {
       .setSilent(true)
       .setPriority(NotificationCompat.PRIORITY_LOW)
       /**
-       * Android 16's (API 36) formal Live Update API - androidx.core
-       * 1.17+ no-ops this below API 36, so this is safe on every
-       * version this app supports. Needs POST_PROMOTED_NOTIFICATIONS
-       * (declared in the manifest), setOngoing(true) and a
-       * contentTitle, all already true above.
+       * Android 16's (API 36) formal Live Update / promoted-ongoing
+       * API. androidx.core 1.17+ gates this on Build.VERSION
+       * internally, so it is a safe no-op below API 36 - no manual
+       * SDK_INT check needed here. Eligibility per the official docs:
+       * Standard/BigText/Call/Progress/MetricStyle (this is Standard,
+       * the default), setOngoing(true), a contentTitle, no custom
+       * RemoteViews view, not a group summary, not setColorized(true),
+       * and a channel importance above IMPORTANCE_MIN - all true here.
        */
       .setRequestPromotedOngoing(true)
       .build()
@@ -191,12 +197,25 @@ class AttendanceForegroundService : Service() {
     if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
 
     val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-    if (manager.getNotificationChannel(CHANNEL_ID) != null) return
+    val existing = manager.getNotificationChannel(CHANNEL_ID)
+
+    /**
+     * IMPORTANCE_MIN disqualifies a notification from Live Update
+     * promotion. An existing install from before this channel used
+     * IMPORTANCE_LOW, which does qualify but is recreated here anyway
+     * to IMPORTANCE_DEFAULT for headroom - channel importance is
+     * otherwise frozen once created, so a stale LOW channel would
+     * silently keep a user on the old behaviour across an app update.
+     */
+    if (existing != null) {
+      if (existing.importance >= NotificationManager.IMPORTANCE_DEFAULT) return
+      manager.deleteNotificationChannel(CHANNEL_ID)
+    }
 
     val channel = NotificationChannel(
       CHANNEL_ID,
       "Attendance",
-      NotificationManager.IMPORTANCE_LOW
+      NotificationManager.IMPORTANCE_DEFAULT
     )
     channel.description = "The ongoing working-time notification while you are punched in"
     channel.setSound(null, null)
