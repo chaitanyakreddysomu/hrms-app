@@ -3,12 +3,15 @@ package expo.modules.attendancenotification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Notification
+import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
+import android.os.SystemClock
+import android.widget.RemoteViews
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import java.text.SimpleDateFormat
@@ -28,10 +31,15 @@ private const val EXTRA_PUNCH_IN = "punchInMillis"
  * treats as non-dismissable, and stopWithTask="false" (manifest)
  * keeps it running even if the task is swiped from recents.
  *
- * The chronometer still does all the ticking itself
- * (setUsesChronometer + setWhen) - this service only posts the
- * notification once, on start, and tears it down on stop. There is
- * no loop here, nothing polls, nothing reposts.
+ * The body is a custom RemoteViews layout (160dp, title + punch-in
+ * time on the left, a live Chronometer on the right) inside
+ * DecoratedCustomViewStyle, which keeps Android's own header (app
+ * icon, app name, the small relative-time badge) and only replaces
+ * the content area below it.
+ *
+ * The chronometer still does all the ticking itself - this service
+ * only posts the notification once, on start, and tears it down on
+ * stop. There is no loop here, nothing polls, nothing reposts.
  */
 class AttendanceForegroundService : Service() {
   companion object {
@@ -84,14 +92,34 @@ class AttendanceForegroundService : Service() {
     val timeFormat = SimpleDateFormat("hh:mm a", Locale.getDefault())
     val punchInText = "Punched in " + timeFormat.format(Date(punchInMillis))
 
+    /**
+     * Chronometer runs on SystemClock.elapsedRealtime() (time since
+     * boot), not wall-clock time - converting the real punch-in
+     * instant into that time base is what lets the displayed timer
+     * already show the correct elapsed duration the moment this
+     * service (re)starts, rather than restarting from zero.
+     */
+    val bootTimeMillis = System.currentTimeMillis() - SystemClock.elapsedRealtime()
+    val chronometerBase = punchInMillis - bootTimeMillis
+
+    val content = RemoteViews(packageName, R.layout.notification_attendance).apply {
+      setTextViewText(R.id.text_punch_in, punchInText)
+      setChronometer(R.id.live_timer, chronometerBase, null, true)
+    }
+
+    val openApp = packageManager.getLaunchIntentForPackage(packageName)
+    val contentIntent = openApp?.let {
+      PendingIntent.getActivity(this, 0, it, PendingIntent.FLAG_IMMUTABLE)
+    }
+
     return NotificationCompat.Builder(this, CHANNEL_ID)
       .setSmallIcon(applicationInfo.icon)
-      .setContentTitle("Attendance Active")
-      .setContentText(punchInText)
-      /** the chronometer counts up from this instant - the server's punch-in time, not a local timer */
+      .setStyle(NotificationCompat.DecoratedCustomViewStyle())
+      .setCustomContentView(content)
+      .setContentIntent(contentIntent)
+      /** the small relative-time badge next to the app name in the system header */
       .setWhen(punchInMillis)
       .setShowWhen(true)
-      .setUsesChronometer(true)
       .setOngoing(true)
       .setOnlyAlertOnce(true)
       .setSilent(true)
