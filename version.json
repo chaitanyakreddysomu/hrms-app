@@ -1,0 +1,12 @@
+{
+  "latestVersion": "1.1.1",
+  "downloadUrl": "https://github.com/chaitanyakreddysomu/hrms-app/releases/download/v1.1.1/ics-hrms-v1.1.1.apk",
+  "changelog": "v1.1.1 - Updates now download and install in-app instead of opening the browser",
+  "features": [
+    "In-app update: download with a progress bar and install without leaving the app",
+    "Update sheet now shows a full \"What's new\" feature list, not just a one-line note",
+    "Bank details section in the profile edit screen, with IFSC auto-fill for bank name/branch",
+    "\"Add Holiday\" action in Admin's and HR's header menu",
+    "Bug fixes"
+  ]
+}

@@ -1,5 +1,7 @@
 import Constants from "expo-constants";
-import { Linking } from "react-native";
+import { Linking, Platform } from "react-native";
+import * as FileSystem from "expo-file-system/legacy";
+import * as IntentLauncher from "expo-intent-launcher";
 
 /**
  * ============================================================
@@ -7,21 +9,25 @@ import { Linking } from "react-native";
  * ============================================================
  *
  * There is no app store here, so "check for update" means asking
- * GitHub directly: the latest release's tag is the latest version,
- * and its APK asset is what gets installed. The CI workflow tags
- * every release v<package.json version>, so the tag is the source
- * of truth on both ends.
+ * a plain JSON file for the current state of the world: the
+ * latest version, where its APK lives, and what changed. Easier
+ * to author and faster to read than GitHub's release API, and it
+ * can list features separately from the one-line changelog.
+ *
+ * The file lives at the repo root and is updated by hand (or by
+ * CI) alongside each release; raw.githubusercontent.com serves
+ * whatever is on `main` right now.
  */
-const REPO = "chaitanyakreddysomu/hrms-app";
-const LATEST_RELEASE_URL = `https://api.github.com/repos/${REPO}/releases/latest`;
+const VERSION_JSON_URL =
+  "https://raw.githubusercontent.com/chaitanyakreddysomu/hrms-app/main/version.json";
 
 export interface UpdateCheckResult {
   currentVersion: string;
   latestVersion: string | null;
   updateAvailable: boolean;
   downloadUrl: string | null;
-  releaseNotes: string | null;
-  releaseUrl: string | null;
+  changelog: string | null;
+  features: string[];
   error?: string;
 }
 
@@ -55,67 +61,113 @@ export function getCurrentVersion(): string {
 }
 
 /**
- * Asks GitHub for the latest release and compares it to the
- * running version. A failed check (offline, rate limited, no
- * release yet) reports no update rather than throwing, since a
- * missed check should not read as "you are up to date".
+ * Reads version.json and compares it to the running version. A
+ * failed check (offline, rate limited, malformed file) reports no
+ * update rather than throwing, since a missed check should not
+ * read as "you are up to date".
  */
 export async function checkForUpdate(): Promise<UpdateCheckResult> {
   const currentVersion = getCurrentVersion();
+  const empty = {
+    currentVersion,
+    latestVersion: null,
+    updateAvailable: false,
+    downloadUrl: null,
+    changelog: null,
+    features: [] as string[],
+  };
 
   try {
-    const res = await fetch(LATEST_RELEASE_URL, {
-      headers: { Accept: "application/vnd.github+json" },
-    });
+    /** the query string busts the CDN cache in front of raw.githubusercontent.com */
+    const res = await fetch(`${VERSION_JSON_URL}?t=${Date.now()}`);
 
     if (!res.ok) {
-      return {
-        currentVersion,
-        latestVersion: null,
-        updateAvailable: false,
-        downloadUrl: null,
-        releaseNotes: null,
-        releaseUrl: null,
-        error: `GitHub returned ${res.status}`,
-      };
+      return { ...empty, error: `Could not reach the update server (${res.status})` };
     }
 
     const data = await res.json();
-    const latestVersion = String(data?.tag_name || "").replace(/^v/i, "");
-
-    const asset = (data?.assets || []).find((a: any) =>
-      String(a?.name || "").toLowerCase().endsWith(".apk")
-    );
+    const latestVersion = String(data?.latestVersion || "").trim();
 
     return {
-      currentVersion,
+      ...empty,
       latestVersion: latestVersion || null,
-      updateAvailable: latestVersion
-        ? isNewer(latestVersion, currentVersion)
-        : false,
-      downloadUrl: asset?.browser_download_url || null,
-      releaseNotes: data?.body || null,
-      releaseUrl: data?.html_url || null,
+      updateAvailable: latestVersion ? isNewer(latestVersion, currentVersion) : false,
+      downloadUrl: data?.downloadUrl || null,
+      changelog: data?.changelog || null,
+      features: Array.isArray(data?.features) ? data.features : [],
     };
   } catch (error: any) {
-    return {
-      currentVersion,
-      latestVersion: null,
-      updateAvailable: false,
-      downloadUrl: null,
-      releaseNotes: null,
-      releaseUrl: null,
-      error: error?.message || String(error),
-    };
+    return { ...empty, error: error?.message || String(error) };
   }
 }
 
+export interface DownloadProgressInfo {
+  /** 0 to 1 */
+  progress: number;
+}
+
 /**
- * Hands the APK off to the system rather than installing it
- * silently: that needs REQUEST_INSTALL_PACKAGES plus a FileProvider
- * just to reach the same confirmation dialog Android already shows
- * for a browser download, so there is nothing to gain by building it.
+ * Downloads the APK into the app's own cache, in-app, with
+ * progress - instead of handing the URL to the browser and losing
+ * all visibility into it.
  */
+export async function downloadApk(
+  url: string,
+  onProgress?: (info: DownloadProgressInfo) => void
+): Promise<string> {
+  if (!FileSystem.cacheDirectory) {
+    throw new Error("No cache directory available on this device.");
+  }
+
+  const destination = `${FileSystem.cacheDirectory}update.apk`;
+
+  /** a stale partial file from an earlier attempt should not be mistaken for a fresh one */
+  const existing = await FileSystem.getInfoAsync(destination);
+  if (existing.exists) {
+    await FileSystem.deleteAsync(destination, { idempotent: true });
+  }
+
+  const downloadResumable = FileSystem.createDownloadResumable(
+    url,
+    destination,
+    {},
+    (progressEvent) => {
+      const { totalBytesWritten, totalBytesExpectedToWrite } = progressEvent;
+      if (totalBytesExpectedToWrite > 0) {
+        onProgress?.({ progress: totalBytesWritten / totalBytesExpectedToWrite });
+      }
+    }
+  );
+
+  const result = await downloadResumable.downloadAsync();
+  if (!result) throw new Error("Download did not complete");
+
+  return result.uri;
+}
+
+/**
+ * Hands the downloaded APK to Android's own package installer.
+ * REQUEST_INSTALL_PACKAGES (declared in app.json) is what lets this
+ * happen without first bouncing through a browser download - the
+ * user still sees Android's own "install unknown apps" prompt and
+ * the installer's own confirmation screen, same as it would from a
+ * browser download, just without the extra hop to get there.
+ */
+export async function installApk(localFileUri: string): Promise<void> {
+  if (Platform.OS !== "android") {
+    throw new Error("In-app install is only supported on Android.");
+  }
+
+  const contentUri = await FileSystem.getContentUriAsync(localFileUri);
+
+  await IntentLauncher.startActivityAsync("android.intent.action.VIEW", {
+    data: contentUri,
+    flags: 1, // Intent.FLAG_GRANT_READ_URI_PERMISSION
+    type: "application/vnd.android.package-archive",
+  });
+}
+
+/** Fallback for platforms that can't sideload, e.g. iOS. */
 export async function openDownload(url: string): Promise<void> {
   await Linking.openURL(url);
 }

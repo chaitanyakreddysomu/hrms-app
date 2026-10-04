@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import {
   ActivityIndicator,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   Text,
@@ -13,7 +14,9 @@ import { Ionicons } from "@expo/vector-icons";
 
 import {
   checkForUpdate,
+  downloadApk,
   getCurrentVersion,
+  installApk,
   openDownload,
   UpdateCheckResult,
 } from "../utils/appUpdate";
@@ -27,17 +30,31 @@ import {
  * its own: a version check is a network call, and nobody asked for
  * one just by opening their profile. It starts blank and only
  * checks once "Check for Updates" is pressed.
+ *
+ * On Android the APK downloads inside the app (with progress)
+ * instead of handing the URL to the browser, then the system
+ * installer opens directly off the downloaded file. iOS has no
+ * sideloading, so it falls back to opening the URL.
  */
 interface Props {
   visible: boolean;
   onClose: () => void;
 }
 
-type Stage = "idle" | "checking" | "done" | "error";
+type Stage =
+  | "idle"
+  | "checking"
+  | "done"
+  | "error"
+  | "downloading"
+  | "downloaded"
+  | "installing";
 
 export default function UpdateSheet({ visible, onClose }: Props) {
   const [stage, setStage] = useState<Stage>("idle");
   const [result, setResult] = useState<UpdateCheckResult | null>(null);
+  const [progress, setProgress] = useState(0);
+  const [localUri, setLocalUri] = useState<string | null>(null);
 
   const runCheck = async () => {
     setStage("checking");
@@ -47,11 +64,54 @@ export default function UpdateSheet({ visible, onClose }: Props) {
     setStage(outcome.error ? "error" : "done");
   };
 
+  const startDownload = async () => {
+    if (!result?.downloadUrl) return;
+
+    /** no sideloading on iOS - the browser is the only way to get the file there */
+    if (Platform.OS !== "android") {
+      openDownload(result.downloadUrl);
+      return;
+    }
+
+    setStage("downloading");
+    setProgress(0);
+
+    try {
+      const uri = await downloadApk(result.downloadUrl, (info) =>
+        setProgress(info.progress)
+      );
+      setLocalUri(uri);
+      setStage("downloaded");
+    } catch (error) {
+      console.error("APK download failed:", error);
+      setResult((r) => (r ? { ...r, error: "The download failed. Try again." } : r));
+      setStage("error");
+    }
+  };
+
+  const install = async () => {
+    if (!localUri) return;
+
+    setStage("installing");
+
+    try {
+      await installApk(localUri);
+      /** Android's own installer takes over from here on its own screen */
+      close();
+    } catch (error) {
+      console.error("APK install failed:", error);
+      setResult((r) => (r ? { ...r, error: "Could not open the installer." } : r));
+      setStage("error");
+    }
+  };
+
   const close = () => {
     onClose();
     /** a stale result should not greet the next open */
     setStage("idle");
     setResult(null);
+    setProgress(0);
+    setLocalUri(null);
   };
 
   return (
@@ -81,7 +141,7 @@ export default function UpdateSheet({ visible, onClose }: Props) {
           >
             {stage === "idle" && (
               <Text style={styles.message}>
-                Check GitHub for the latest release of this app.
+                Check for the latest version of this app.
               </Text>
             )}
 
@@ -96,7 +156,7 @@ export default function UpdateSheet({ visible, onClose }: Props) {
               <View style={[styles.statusRow, styles.errorRow]}>
                 <Ionicons name="warning-outline" size={18} color="#DC2626" />
                 <Text style={[styles.message, styles.errorText]}>
-                  Could not check for updates. {result?.error}
+                  {result?.error || "Something went wrong."}
                 </Text>
               </View>
             )}
@@ -114,22 +174,77 @@ export default function UpdateSheet({ visible, onClose }: Props) {
               </View>
             )}
 
-            {stage === "done" && result && result.updateAvailable && (
-              <View style={styles.updateBlock}>
-                <View style={[styles.statusRow, styles.updateRow]}>
-                  <Ionicons name="sparkles" size={18} color="#D97706" />
-                  <Text style={[styles.message, styles.updateText]}>
-                    Version {result.latestVersion} is available.
-                  </Text>
-                </View>
+            {result?.updateAvailable &&
+              (stage === "done" ||
+                stage === "downloading" ||
+                stage === "downloaded" ||
+                stage === "installing") && (
+                <View style={styles.updateBlock}>
+                  <View style={[styles.statusRow, styles.updateRow]}>
+                    <Ionicons name="sparkles" size={18} color="#D97706" />
+                    <Text style={[styles.message, styles.updateText]}>
+                      Version {result.latestVersion} is available.
+                    </Text>
+                  </View>
 
-                {!!result.releaseNotes && (
-                  <Text style={styles.notes} numberOfLines={6}>
-                    {result.releaseNotes}
-                  </Text>
-                )}
-              </View>
-            )}
+                  {!!result.changelog && (
+                    <Text style={styles.notes}>{result.changelog}</Text>
+                  )}
+
+                  {result.features.length > 0 && (
+                    <View style={styles.featureList}>
+                      <Text style={styles.featureHeading}>What's new</Text>
+
+                      {result.features.map((feature, index) => (
+                        <View key={index} style={styles.featureRow}>
+                          <Ionicons
+                            name="checkmark-circle-outline"
+                            size={15}
+                            color="#2563EB"
+                          />
+                          <Text style={styles.featureText}>{feature}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  )}
+
+                  {stage === "downloading" && (
+                    <View style={styles.progressWrap}>
+                      <View style={styles.progressTrack}>
+                        <View
+                          style={[
+                            styles.progressFill,
+                            { width: `${Math.round(progress * 100)}%` },
+                          ]}
+                        />
+                      </View>
+                      <Text style={styles.progressText}>
+                        Downloading… {Math.round(progress * 100)}%
+                      </Text>
+                    </View>
+                  )}
+
+                  {stage === "downloaded" && (
+                    <View style={[styles.statusRow, styles.okRow]}>
+                      <Ionicons
+                        name="checkmark-circle"
+                        size={18}
+                        color="#059669"
+                      />
+                      <Text style={[styles.message, styles.okText]}>
+                        Downloaded. Ready to install.
+                      </Text>
+                    </View>
+                  )}
+
+                  {stage === "installing" && (
+                    <View style={styles.statusRow}>
+                      <ActivityIndicator color="#2563EB" />
+                      <Text style={styles.message}>Opening installer…</Text>
+                    </View>
+                  )}
+                </View>
+              )}
           </ScrollView>
 
           <View style={styles.actions}>
@@ -141,14 +256,30 @@ export default function UpdateSheet({ visible, onClose }: Props) {
               <Text style={styles.cancelText}>Close</Text>
             </TouchableOpacity>
 
-            {stage === "done" && result?.updateAvailable && result.downloadUrl ? (
+            {stage === "downloaded" ? (
               <TouchableOpacity
                 activeOpacity={0.85}
-                onPress={() => openDownload(result.downloadUrl!)}
+                onPress={install}
                 style={[styles.button, styles.confirm]}
               >
-                <Text style={styles.confirmText}>Download & Install</Text>
+                <Text style={styles.confirmText}>Install</Text>
               </TouchableOpacity>
+            ) : result?.updateAvailable &&
+              result.downloadUrl &&
+              (stage === "done" || stage === "error") ? (
+              <TouchableOpacity
+                activeOpacity={0.85}
+                onPress={startDownload}
+                style={[styles.button, styles.confirm]}
+              >
+                <Text style={styles.confirmText}>
+                  {Platform.OS === "android" ? "Download & Install" : "Download"}
+                </Text>
+              </TouchableOpacity>
+            ) : stage === "downloading" || stage === "installing" ? (
+              <View style={[styles.button, styles.confirm, styles.buttonBusy]}>
+                <ActivityIndicator color="#FFFFFF" size="small" />
+              </View>
             ) : (
               <TouchableOpacity
                 activeOpacity={0.85}
@@ -240,6 +371,7 @@ const styles = StyleSheet.create({
   okText: {
     color: "#047857",
     flex: 1,
+    textAlign: "left",
   },
   errorRow: {
     backgroundColor: "#FEF2F2",
@@ -247,6 +379,7 @@ const styles = StyleSheet.create({
   errorText: {
     color: "#B91C1C",
     flex: 1,
+    textAlign: "left",
   },
   updateRow: {
     backgroundColor: "#FFFBEB",
@@ -255,6 +388,7 @@ const styles = StyleSheet.create({
     color: "#B45309",
     fontWeight: "700",
     flex: 1,
+    textAlign: "left",
   },
   updateBlock: {
     alignSelf: "stretch",
@@ -265,6 +399,52 @@ const styles = StyleSheet.create({
     lineHeight: 19,
     marginTop: 12,
     paddingHorizontal: 2,
+  },
+  featureList: {
+    marginTop: 16,
+    paddingHorizontal: 2,
+  },
+  featureHeading: {
+    color: "#0F172A",
+    fontSize: 12,
+    fontWeight: "800",
+    textTransform: "uppercase",
+    letterSpacing: 0.6,
+    marginBottom: 8,
+  },
+  featureRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 8,
+    marginBottom: 7,
+  },
+  featureText: {
+    flex: 1,
+    color: "#334155",
+    fontSize: 13,
+    lineHeight: 19,
+  },
+  progressWrap: {
+    marginTop: 16,
+    paddingHorizontal: 2,
+  },
+  progressTrack: {
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#E2E8F0",
+    overflow: "hidden",
+  },
+  progressFill: {
+    height: "100%",
+    backgroundColor: "#2563EB",
+    borderRadius: 4,
+  },
+  progressText: {
+    color: "#64748B",
+    fontSize: 12,
+    fontWeight: "600",
+    marginTop: 8,
+    textAlign: "center",
   },
   actions: {
     flexDirection: "row",
@@ -277,6 +457,10 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
     borderRadius: 16,
     alignItems: "center",
+  },
+  buttonBusy: {
+    flexDirection: "row",
+    justifyContent: "center",
   },
   cancel: {
     backgroundColor: "#F1F5F9",
