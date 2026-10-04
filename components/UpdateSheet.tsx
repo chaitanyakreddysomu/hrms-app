@@ -16,6 +16,7 @@ import {
   checkForUpdate,
   downloadApk,
   getCurrentVersion,
+  getDownloadedApk,
   installApk,
   openDownload,
   UpdateCheckResult,
@@ -61,11 +62,26 @@ export default function UpdateSheet({ visible, onClose }: Props) {
 
     const outcome = await checkForUpdate();
     setResult(outcome);
+
+    /**
+     * A previous visit may have downloaded this exact version and
+     * then closed the sheet without installing it - that file is
+     * still on disk, so there is no reason to fetch it again.
+     */
+    if (outcome.updateAvailable && outcome.latestVersion && Platform.OS === "android") {
+      const existing = await getDownloadedApk(outcome.latestVersion);
+      if (existing) {
+        setLocalUri(existing);
+        setStage("downloaded");
+        return;
+      }
+    }
+
     setStage(outcome.error ? "error" : "done");
   };
 
   const startDownload = async () => {
-    if (!result?.downloadUrl) return;
+    if (!result?.downloadUrl || !result?.latestVersion) return;
 
     /** no sideloading on iOS - the browser is the only way to get the file there */
     if (Platform.OS !== "android") {
@@ -77,7 +93,7 @@ export default function UpdateSheet({ visible, onClose }: Props) {
     setProgress(0);
 
     try {
-      const uri = await downloadApk(result.downloadUrl, (info) =>
+      const uri = await downloadApk(result.downloadUrl, result.latestVersion, (info) =>
         setProgress(info.progress)
       );
       setLocalUri(uri);

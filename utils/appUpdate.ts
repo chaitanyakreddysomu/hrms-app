@@ -107,19 +107,45 @@ export interface DownloadProgressInfo {
 }
 
 /**
+ * The APK is named after the version it is, rather than a fixed
+ * "update.apk" - so a completed download is self-describing. That
+ * is what lets a closed-and-reopened update sheet recognise "this
+ * version is already downloaded" instead of starting over.
+ */
+function apkDestination(version: string): string {
+  return `${FileSystem.cacheDirectory}update-${version}.apk`;
+}
+
+/**
+ * Checks whether the given version's APK is already sitting in the
+ * cache from an earlier download the person never installed - e.g.
+ * they closed the sheet instead of tapping Install. Returns its URI
+ * if so, so the sheet can go straight to the Install step.
+ */
+export async function getDownloadedApk(version: string): Promise<string | null> {
+  if (!FileSystem.cacheDirectory) return null;
+
+  const destination = apkDestination(version);
+  const info = await FileSystem.getInfoAsync(destination);
+
+  return info.exists ? destination : null;
+}
+
+/**
  * Downloads the APK into the app's own cache, in-app, with
  * progress - instead of handing the URL to the browser and losing
  * all visibility into it.
  */
 export async function downloadApk(
   url: string,
+  version: string,
   onProgress?: (info: DownloadProgressInfo) => void
 ): Promise<string> {
   if (!FileSystem.cacheDirectory) {
     throw new Error("No cache directory available on this device.");
   }
 
-  const destination = `${FileSystem.cacheDirectory}update.apk`;
+  const destination = apkDestination(version);
 
   /** a stale partial file from an earlier attempt should not be mistaken for a fresh one */
   const existing = await FileSystem.getInfoAsync(destination);
