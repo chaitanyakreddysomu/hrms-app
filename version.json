@@ -1,7 +1,7 @@
 {
-  "latestVersion": "1.1.5",
-  "downloadUrl": "https://github.com/chaitanyakreddysomu/hrms-app/releases/download/v1.1.5/ics-hrms-v1.1.5.apk",
-  "changelog": "v1.1.5 - Attendance notification is now a real Samsung/Android Live Notification pill, and push notifications always reach the tray",
+  "latestVersion": "1.1.6",
+  "downloadUrl": "https://github.com/chaitanyakreddysomu/hrms-app/releases/download/v1.1.6/ics-hrms-v1.1.6.apk",
+  "changelog": "v1.1.6 - Refreshed employee dashboard, service shortcuts, and bottom navigation",
   "features": [
     "Attendance notification now uses Android's own Live Notification pill (Samsung's \"Live notifications\") instead of a custom card - drawn by the system itself, with a live chronometer",
     "Push notifications now always show in the notification tray, even while the app is open - not just as an in-app banner",
