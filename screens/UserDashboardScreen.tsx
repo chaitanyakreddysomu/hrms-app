@@ -118,6 +118,7 @@ export default function UserDashboardScreen({ route, navigation }: Props) {
             title: "My Workspace",
             subtitle: user.role,
             icon: "grid-outline",
+            hideHeader: true,
             headerAction: {
               icon: "notifications-outline",
               badge: unread,
@@ -127,6 +128,7 @@ export default function UserDashboardScreen({ route, navigation }: Props) {
               <EmployeeHomeScreen
                 name={user.name}
                 profileImage={user.profileImage}
+                unread={unread}
                 onNavigate={(tab, page) => shellRef.current?.(tab, page)}
               />
             ),

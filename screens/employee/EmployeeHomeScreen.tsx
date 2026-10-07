@@ -3,11 +3,13 @@ import {
   Image,
   RefreshControl,
   ScrollView,
+  StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import * as Location from "expo-location";
 import UpdateSheet from "../../components/UpdateSheet";
 
@@ -30,19 +32,24 @@ import {
  * EMPLOYEE HOME
  * ============================================================
  *
- * The landing page: today's attendance with punch in and out,
- * the month at a glance, and shortcuts into the sections the
- * bottom bar keeps one level down.
+ * The landing page: today's attendance, service shortcuts, and
+ * recent leave activity.
  */
 interface Props {
   name: string;
   onNavigate: (tab: string, page?: string) => void;
   profileImage?: string;
+  unread?: number;
 }
 
-export default function EmployeeHomeScreen({ name, onNavigate, profileImage }: Props) {
+export default function EmployeeHomeScreen({
+  name,
+  onNavigate,
+  profileImage,
+  unread = 0,
+}: Props) {
   const shellScroll = useShellScroll();
-  const shellTop = useShellContentTop(16);
+  const shellTop = useShellContentTop(16, true);
   const { showToast } = useToast();
 
   const [today, setToday] = useState<any>(null);
@@ -343,8 +350,8 @@ export default function EmployeeHomeScreen({ name, onNavigate, profileImage }: P
     >
       {/* GREETING */}
       <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 18 }}>
-        <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: "#EFF6FF", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
-          {profileImage ? <Image source={{ uri: profileImage }} style={{ width: 48, height: 48 }} /> : <Ionicons name="person" size={23} color="#2563EB" />}
+        <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: "#2563EB", alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: "#DBEAFE", overflow: "hidden" }}>
+          {profileImage ? <Image source={{ uri: profileImage }} style={{ width: 46, height: 46, borderRadius: 23, borderWidth: 2, borderColor: "#FFFFFF" }} /> : <View style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: "#DBEAFE", alignItems: "center", justifyContent: "center" }}><Ionicons name="person" size={23} color="#2563EB" /></View>}
         </View>
         <View style={{ flex: 1, marginLeft: 12 }}>
           <Text style={{ color: "#8A8D98", fontSize: 13, fontWeight: "600" }}>Good {new Date().getHours() < 12 ? "morning" : new Date().getHours() < 17 ? "afternoon" : "evening"}</Text>
@@ -352,7 +359,11 @@ export default function EmployeeHomeScreen({ name, onNavigate, profileImage }: P
         </View>
         <TouchableOpacity onPress={() => onNavigate("home", "notifications")} activeOpacity={0.75} style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: "#FFFFFF", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "#F0EFED" }}>
           <Ionicons name="notifications-outline" size={20} color="#202331" />
-          <View style={{ position: "absolute", top: 10, right: 11, width: 7, height: 7, borderRadius: 4, backgroundColor: "#EF4444" }} />
+          {unread > 0 ? (
+            <View style={{ position: "absolute", top: 1, right: 1, minWidth: 17, height: 17, paddingHorizontal: 4, borderRadius: 9, backgroundColor: "#EF4444", alignItems: "center", justifyContent: "center" }}>
+              <Text style={{ color: "#FFFFFF", fontSize: 9, fontWeight: "800" }}>{unread > 99 ? "99+" : unread}</Text>
+            </View>
+          ) : null}
         </TouchableOpacity>
       </View>
 
@@ -361,18 +372,32 @@ export default function EmployeeHomeScreen({ name, onNavigate, profileImage }: P
       <View
         style={{
           borderRadius: 22,
-          backgroundColor: "#2563EB",
-          padding: 20,
           marginBottom: 18,
-          minHeight: 206,
-          justifyContent: "space-between",
-          shadowColor: "#1D4ED8",
-          shadowOffset: { width: 0, height: 12 },
-          shadowOpacity: 0.24,
-          shadowRadius: 18,
-          elevation: 10,
+          shadowColor: "#0B3FAF",
+          shadowOffset: { width: 0, height: 16 },
+          shadowOpacity: 0.34,
+          shadowRadius: 24,
+          elevation: 18,
         }}
       >
+      <LinearGradient
+        colors={["#1765E8", "#2F7BF0", "#1254C8"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={{
+          borderRadius: 22,
+          overflow: "hidden",
+          padding: 20,
+          minHeight: 206,
+          justifyContent: "space-between",
+        }}
+      >
+        <View pointerEvents="none" style={{ ...StyleSheet.absoluteFillObject, overflow: "hidden" }}>
+          <View style={{ position: "absolute", width: 240, height: 240, borderRadius: 120, top: -132, right: -72, backgroundColor: "rgba(255,255,255,0.09)" }} />
+          <View style={{ position: "absolute", width: 174, height: 174, borderRadius: 87, top: -74, right: -10, borderWidth: 1, borderColor: "rgba(255,255,255,0.18)" }} />
+          <View style={{ position: "absolute", width: 280, height: 88, borderRadius: 44, top: 118, right: -104, transform: [{ rotate: "-28deg" }], backgroundColor: "rgba(255,255,255,0.07)" }} />
+          <View style={{ position: "absolute", width: 152, height: 152, borderRadius: 76, bottom: -106, left: -42, backgroundColor: "rgba(8,47,130,0.12)" }} />
+        </View>
         {/* the date on the left, the clock on the right */}
         <View
           style={{
@@ -506,15 +531,17 @@ export default function EmployeeHomeScreen({ name, onNavigate, profileImage }: P
             </Text>
           </TouchableOpacity>
         </View>
+      </LinearGradient>
       </View>
 
-      <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", marginTop: 2 }}>
+      <SectionTitle>Your services</SectionTitle>
+      <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 2, marginBottom: 8 }}>
         {shortcuts.map((item) => (
-          <TouchableOpacity key={item.label} activeOpacity={0.85} onPress={() => onNavigate("documents", item.page)} style={{ width: "48%", alignItems: "center", marginBottom: 18 }}>
-            <View style={{ width: "100%", aspectRatio: 1, backgroundColor: "#FFFFFF", borderRadius: 14, borderWidth: 1, borderColor: "#E8EDF5", alignItems: "center", justifyContent: "center", shadowColor: "#0F172A", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 9, elevation: 2 }}>
-              <Ionicons name={item.icon} size={34} color="#2563EB" />
+          <TouchableOpacity key={item.label} activeOpacity={0.75} onPress={() => onNavigate("documents", item.page)} style={{ width: "24%", alignItems: "center", paddingVertical: 8 }}>
+            <View style={{ width: 42, height: 42, backgroundColor: "#EFF6FF", borderRadius: 12, alignItems: "center", justifyContent: "center" }}>
+              <Ionicons name={item.icon} size={21} color="#2563EB" />
             </View>
-            <Text style={{ color: "#202331", fontSize: 13, fontWeight: "700", marginTop: 9 }}>{item.label}</Text>
+            <Text style={{ color: "#334155", fontSize: 10, fontWeight: "700", marginTop: 6 }} numberOfLines={1}>{item.label}</Text>
           </TouchableOpacity>
         ))}
       </View>

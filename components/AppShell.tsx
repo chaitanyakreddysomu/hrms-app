@@ -67,6 +67,8 @@ export interface ShellPage {
   key: string;
   title: string;
   subtitle?: string;
+  /** hide the floating title bar on focused landing pages */
+  hideHeader?: boolean;
   /** icon shown for this page in the section picker */
   icon: keyof typeof Ionicons.glyphMap;
   /**
@@ -521,10 +523,11 @@ function Shell({ tabs, initialTabKey, logo, navigateRef, switcher }: Props) {
       </BlurTargetView>
 
       {/* floating header -------------------------------------- */}
-      <View
-        style={[styles.header, { paddingTop: insets.top + 6 }]}
-        pointerEvents="box-none"
-      >
+      {!page.hideHeader && (
+        <View
+          style={[styles.header, { paddingTop: insets.top + 6 }]}
+          pointerEvents="box-none"
+        >
         {/**
          * Plain white, run edge to edge and squared off so it
          * carries the status bar with it. Android's blur fallback
@@ -601,7 +604,8 @@ function Shell({ tabs, initialTabKey, logo, navigateRef, switcher }: Props) {
           }}
           onBannerDone={() => setBanner(null)}
         />
-      </View>
+        </View>
+      )}
 
       {/* section picker --------------------------------------- */}
       {pickerMounted && (

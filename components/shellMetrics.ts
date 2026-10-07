@@ -31,8 +31,8 @@ export const BAR_HEIGHT = 58;
  * line below the bar. Padding on the content leaves the edge at
  * the top of the screen and simply starts the first item lower.
  */
-export function useShellContentTop(extra: number = 0) {
+export function useShellContentTop(extra: number = 0, hideHeader = false) {
   const insets = useSafeAreaInsets();
 
-  return insets.top + BAR_HEIGHT + extra;
+  return insets.top + (hideHeader ? 0 : BAR_HEIGHT) + extra;
 }
