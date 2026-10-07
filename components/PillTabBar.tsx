@@ -812,7 +812,7 @@ const styles = StyleSheet.create({
    */
   barSolid: {
     backgroundColor: "#FFFFFF",
-    borderRadius: 34,
+    borderRadius: 22,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: "rgba(15,23,42,0.06)",
     shadowColor: "#0F172A",

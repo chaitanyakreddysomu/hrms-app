@@ -786,7 +786,7 @@ const styles = StyleSheet.create({
   },
   pickerCardSolid: {
     backgroundColor: "#FFFFFF",
-    borderRadius: 28,
+    borderRadius: 20,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: "rgba(15,23,42,0.08)",
   },
@@ -804,7 +804,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: 12,
     paddingHorizontal: 10,
-    borderRadius: 20,
+    borderRadius: 14,
     marginBottom: 4,
   },
   pickerRowActive: {
@@ -813,7 +813,7 @@ const styles = StyleSheet.create({
   pickerIcon: {
     width: 42,
     height: 42,
-    borderRadius: 21,
+    borderRadius: 14,
     backgroundColor: "#EFF6FF",
     alignItems: "center",
     justifyContent: "center",

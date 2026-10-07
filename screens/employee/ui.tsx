@@ -69,7 +69,7 @@ export function Card({
       style={[
         {
           backgroundColor: "#FFFFFF",
-          borderRadius: 24,
+          borderRadius: 16,
           borderWidth: 1,
           borderColor: "#EEF2F7",
           padding: 16,
@@ -105,7 +105,7 @@ export function IconTile({
       style={{
         width: size,
         height: size,
-        borderRadius: size / 3,
+        borderRadius: size / 4,
         backgroundColor: TONE[tone].bg,
         alignItems: "center",
         justifyContent: "center",
@@ -197,7 +197,7 @@ export function StatTile({
       style={{
         flex: 1,
         backgroundColor: "#FFFFFF",
-        borderRadius: 20,
+        borderRadius: 14,
         borderWidth: 1,
         borderColor: "#EEF2F7",
         padding: 14,
@@ -356,7 +356,7 @@ export function PrimaryButton({
       style={[
         {
           height: 50,
-          borderRadius: 16,
+        borderRadius: 12,
           backgroundColor: off ? "#CBD5E1" : TONE[tone].fg,
           flexDirection: "row",
           alignItems: "center",

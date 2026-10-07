@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from "react";
 import {
+  Image,
   RefreshControl,
   ScrollView,
   Text,
@@ -8,6 +9,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as Location from "expo-location";
+import UpdateSheet from "../../components/UpdateSheet";
 
 import { getAuthSession } from "../../utils/authStorage";
 import { apiFetch } from "../../utils/api";
@@ -19,9 +21,7 @@ import {
   Card,
   IconTile,
   SectionTitle,
-  StatTile,
   StatusPill,
-  ToneName,
   formatDate,
 } from "./ui";
 
@@ -37,16 +37,17 @@ import {
 interface Props {
   name: string;
   onNavigate: (tab: string, page?: string) => void;
+  profileImage?: string;
 }
 
-export default function EmployeeHomeScreen({ name, onNavigate }: Props) {
+export default function EmployeeHomeScreen({ name, onNavigate, profileImage }: Props) {
   const shellScroll = useShellScroll();
   const shellTop = useShellContentTop(16);
   const { showToast } = useToast();
 
   const [today, setToday] = useState<any>(null);
-  const [stats, setStats] = useState<any>(null);
   const [leaves, setLeaves] = useState<any[]>([]);
+  const [updateSheetOpen, setUpdateSheetOpen] = useState(false);
 
   const [refreshing, setRefreshing] = useState(false);
   const [punching, setPunching] = useState(false);
@@ -59,14 +60,12 @@ export default function EmployeeHomeScreen({ name, onNavigate }: Props) {
       const session = await getAuthSession();
       if (!session?.token) return;
 
-      const [todayRes, statsRes, leaveRes] = await Promise.all([
+      const [todayRes, leaveRes] = await Promise.all([
         apiFetch("/api/attendance/today", session.token),
-        apiFetch("/api/attendance/stats", session.token),
         apiFetch("/api/employee/leaves", session.token),
       ]);
 
       if (todayRes.ok) setToday(await todayRes.json().catch(() => null));
-      if (statsRes.ok) setStats(await statsRes.json().catch(() => null));
 
       if (leaveRes.ok) {
         const data = await leaveRes.json().catch(() => []);
@@ -292,46 +291,30 @@ export default function EmployeeHomeScreen({ name, onNavigate }: Props) {
     }
   };
 
-  const pendingLeaves = leaves.filter((l) => l.status === "Pending").length;
-
   const shortcuts: {
     icon: keyof typeof Ionicons.glyphMap;
-    tone: ToneName;
     label: string;
-    hint: string;
-    tab: string;
-    page?: string;
+    page: string;
   }[] = [
     {
-      icon: "airplane-outline",
-      tone: "blue",
-      label: "Apply for leave",
-      hint: "Submit a new request",
-      tab: "leaves",
+      icon: "sunny-outline",
+      label: "Holidays",
+      page: "holidays",
     },
     {
       icon: "receipt-outline",
-      tone: "green",
-      label: "My payslips",
-      hint: "Monthly salary breakdown",
-      tab: "more",
+      label: "Payslips",
       page: "payslips",
     },
     {
-      icon: "folder-open-outline",
-      tone: "amber",
-      label: "My documents",
-      hint: "Upload what HR still needs",
-      tab: "more",
-      page: "documents",
+      icon: "people-outline",
+      label: "Referrals",
+      page: "referrals",
     },
     {
-      icon: "people-outline",
-      tone: "purple",
-      label: "Refer a friend",
-      hint: "Track your referrals",
-      tab: "more",
-      page: "referrals",
+      icon: "chatbubble-ellipses-outline",
+      label: "Complaints",
+      page: "complaints",
     },
   ];
 
@@ -341,6 +324,7 @@ export default function EmployeeHomeScreen({ name, onNavigate }: Props) {
       showsVerticalScrollIndicator={false}
       contentContainerStyle={{
         padding: 16,
+        backgroundColor: "#FAF9F7",
         /** clears the bar, then 14 of air before the first card */
         paddingTop: shellTop + 14,
         paddingBottom: 150,
@@ -357,14 +341,36 @@ export default function EmployeeHomeScreen({ name, onNavigate }: Props) {
         />
       }
     >
+      {/* GREETING */}
+      <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 18 }}>
+        <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: "#EFF6FF", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
+          {profileImage ? <Image source={{ uri: profileImage }} style={{ width: 48, height: 48 }} /> : <Ionicons name="person" size={23} color="#2563EB" />}
+        </View>
+        <View style={{ flex: 1, marginLeft: 12 }}>
+          <Text style={{ color: "#8A8D98", fontSize: 13, fontWeight: "600" }}>Good {new Date().getHours() < 12 ? "morning" : new Date().getHours() < 17 ? "afternoon" : "evening"}</Text>
+          <Text style={{ color: "#171A24", fontSize: 22, fontWeight: "800", marginTop: 1 }}>Hello, {name.split(" ")[0]}</Text>
+        </View>
+        <TouchableOpacity onPress={() => onNavigate("home", "notifications")} activeOpacity={0.75} style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: "#FFFFFF", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "#F0EFED" }}>
+          <Ionicons name="notifications-outline" size={20} color="#202331" />
+          <View style={{ position: "absolute", top: 10, right: 11, width: 7, height: 7, borderRadius: 4, backgroundColor: "#EF4444" }} />
+        </TouchableOpacity>
+      </View>
+
       {/* TODAY */}
 
       <View
         style={{
-          borderRadius: 28,
+          borderRadius: 22,
           backgroundColor: "#2563EB",
           padding: 20,
-          marginBottom: 12,
+          marginBottom: 18,
+          minHeight: 206,
+          justifyContent: "space-between",
+          shadowColor: "#1D4ED8",
+          shadowOffset: { width: 0, height: 12 },
+          shadowOpacity: 0.24,
+          shadowRadius: 18,
+          elevation: 10,
         }}
       >
         {/* the date on the left, the clock on the right */}
@@ -378,7 +384,7 @@ export default function EmployeeHomeScreen({ name, onNavigate }: Props) {
           <View style={{ flex: 1, paddingRight: 12 }}>
             <Text
               style={{
-                color: "#BFDBFE",
+                color: "#DBEAFE",
                 fontSize: 11,
                 fontWeight: "800",
                 letterSpacing: 1.1,
@@ -400,7 +406,7 @@ export default function EmployeeHomeScreen({ name, onNavigate }: Props) {
                 marginTop: 6,
               }}
             >
-              Hello {name.split(" ")[0]}
+              {punchedOut ? "Your workday is complete" : punchedIn ? "Your shift is in progress" : "Your day at a glance"}
             </Text>
           </View>
 
@@ -408,7 +414,7 @@ export default function EmployeeHomeScreen({ name, onNavigate }: Props) {
             <View style={{ alignItems: "flex-end" }}>
               <Text
                 style={{
-                  color: "#BFDBFE",
+                  color: "#DBEAFE",
                   fontSize: 10,
                   fontWeight: "800",
                   letterSpacing: 1,
@@ -443,7 +449,7 @@ export default function EmployeeHomeScreen({ name, onNavigate }: Props) {
           <View style={{ flex: 1, paddingRight: 12 }}>
             <Text
               style={{
-                color: "#BFDBFE",
+                color: "#DBEAFE",
                 fontSize: 11,
                 fontWeight: "700",
               }}
@@ -464,7 +470,7 @@ export default function EmployeeHomeScreen({ name, onNavigate }: Props) {
                 ? "Day complete"
                 : punchedIn
                 ? "You are punched in"
-                : "Not punched in yet"}
+                : "Ready when you are"}
             </Text>
           </View>
 
@@ -475,7 +481,7 @@ export default function EmployeeHomeScreen({ name, onNavigate }: Props) {
             style={{
               height: 44,
               paddingHorizontal: 20,
-              borderRadius: 22,
+              borderRadius: 14,
               backgroundColor: punchedOut
                 ? "rgba(255,255,255,0.25)"
                 : "#FFFFFF",
@@ -502,95 +508,24 @@ export default function EmployeeHomeScreen({ name, onNavigate }: Props) {
         </View>
       </View>
 
-      {/* MONTH */}
-
-      <View style={{ flexDirection: "row", gap: 10 }}>
-        <StatTile
-          icon="time-outline"
-          label="Hours today"
-          value={stats ? `${stats.today ?? 0} h` : "0 h"}
-          tone="green"
-        />
-
-        <StatTile
-          icon="hourglass-outline"
-          label="Leaves pending"
-          value={String(pendingLeaves)}
-          tone="amber"
-        />
-
-        <StatTile
-          icon="calendar-outline"
-          label="Hours this month"
-          value={stats ? `${stats.month ?? 0} h` : "0 h"}
-          tone="blue"
-        />
-      </View>
-
-      {/* SHORTCUTS */}
-
-      <SectionTitle>Quick actions</SectionTitle>
-
-      <View
-        style={{
-          flexDirection: "row",
-          flexWrap: "wrap",
-          justifyContent: "space-between",
-        }}
-      >
+      <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", marginTop: 2 }}>
         {shortcuts.map((item) => (
-          <TouchableOpacity
-            key={item.label}
-            activeOpacity={0.85}
-            onPress={() => onNavigate(item.tab, item.page)}
-            style={{
-              width: "48.5%",
-              backgroundColor: "#FFFFFF",
-              borderRadius: 24,
-              borderWidth: 1,
-              borderColor: "#EEF2F7",
-              padding: 16,
-              marginBottom: 12,
-            }}
-          >
-            <IconTile icon={item.icon} tone={item.tone} />
-
-            <Text
-              style={{
-                color: "#0F172A",
-                fontSize: 13,
-                fontWeight: "800",
-                marginTop: 12,
-              }}
-              numberOfLines={1}
-            >
-              {item.label}
-            </Text>
-
-            <Text
-              style={{
-                color: "#94A3B8",
-                fontSize: 11,
-                fontWeight: "600",
-                marginTop: 3,
-              }}
-              numberOfLines={2}
-            >
-              {item.hint}
-            </Text>
+          <TouchableOpacity key={item.label} activeOpacity={0.85} onPress={() => onNavigate("documents", item.page)} style={{ width: "48%", alignItems: "center", marginBottom: 18 }}>
+            <View style={{ width: "100%", aspectRatio: 1, backgroundColor: "#FFFFFF", borderRadius: 14, borderWidth: 1, borderColor: "#E8EDF5", alignItems: "center", justifyContent: "center", shadowColor: "#0F172A", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 9, elevation: 2 }}>
+              <Ionicons name={item.icon} size={34} color="#2563EB" />
+            </View>
+            <Text style={{ color: "#202331", fontSize: 13, fontWeight: "700", marginTop: 9 }}>{item.label}</Text>
           </TouchableOpacity>
         ))}
       </View>
 
       {/* RECENT LEAVES */}
 
-      {leaves.length > 0 && (
-        <>
-          <SectionTitle action="See all" onAction={() => onNavigate("leaves")}>
-            Recent leave
-          </SectionTitle>
-
-          {leaves.slice(0, 3).map((leave) => (
+      <SectionTitle action="See all" onAction={() => onNavigate("leaves")}>
+        Recent leave
+      </SectionTitle>
+      {leaves.length > 0 ? (
+        leaves.slice(0, 3).map((leave) => (
             <Card key={leave._id}>
               <View style={{ flexDirection: "row", alignItems: "center" }}>
                 <IconTile
@@ -631,9 +566,16 @@ export default function EmployeeHomeScreen({ name, onNavigate }: Props) {
                 <StatusPill status={leave.status} />
               </View>
             </Card>
-          ))}
-        </>
+        ))
+      ) : (
+        <Text style={{ color: "#94A3B8", fontSize: 13, marginBottom: 12 }}>No recent leave requests</Text>
       )}
+
+      <TouchableOpacity activeOpacity={0.85} onPress={() => setUpdateSheetOpen(true)} style={{ minHeight: 54, borderRadius: 14, backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: "#DCE7F8", flexDirection: "row", alignItems: "center", justifyContent: "center", marginTop: 8, marginBottom: 20 }}>
+        <Ionicons name="cloud-download-outline" size={19} color="#2563EB" />
+        <Text style={{ color: "#2563EB", fontSize: 14, fontWeight: "700", marginLeft: 9 }}>Check for updates</Text>
+      </TouchableOpacity>
+      <UpdateSheet visible={updateSheetOpen} onClose={() => setUpdateSheetOpen(false)} />
     </ScrollView>
   );
 }

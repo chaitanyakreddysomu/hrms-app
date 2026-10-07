@@ -1,37 +1,35 @@
-/**
- * Centralized API utility for the HRMS Mobile App.
- *
- * The backend is deployed, so there is one address and it is the
- * same from every device: a phone on mobile data, a phone on any
- * Wi-Fi, an emulator, a simulator. Nothing is probed and nothing
- * depends on which network the laptop happens to be on.
- */
+import Constants from "expo-constants";
+
+/** Centralized API utility for the HRMS Mobile App. */
 
 /** The one place the backend address lives. */
 const DEPLOYED = "https://hrms-zeta-livid.vercel.app";
 
 /**
- * Point this at a machine on the LAN to work against a backend
- * running locally, e.g. "http://192.168.1.34:5000". Left empty the
- * app uses the deployed one above.
+ * In development, use the host running Expo and the local backend.
+ * With `npx expo start` on LAN, hostUri supplies the computer's LAN IP
+ * so a physical phone can reach the backend too.
  */
-const LOCAL_OVERRIDE = "";
+const expoHost = Constants.expoConfig?.hostUri;
+const localHost = expoHost
+  ? expoHost.startsWith("[")
+    ? expoHost.slice(0, expoHost.indexOf("]") + 1)
+    : expoHost.replace(/:\d+$/, "")
+  : "localhost";
+const DEVELOPMENT = `http://${localHost}:5000`;
 
-/** What every request goes to, override included. */
-export const API_BASE_URL = LOCAL_OVERRIDE || DEPLOYED;
+/** Development uses the local API; release builds use production. */
+export const API_BASE_URL = __DEV__ ? DEVELOPMENT : DEPLOYED;
 
 const BASE = API_BASE_URL;
 
 /**
- * Kept for the screens that name the host in an error message.
- * There is no port and no IP any more, so this is the hostname.
+ * Kept for screens that include the API host in error messages.
  */
 export const LOCAL_IP = BASE.replace(/^https?:\/\//, "");
 
 /**
- * The base never changes now, so there is nothing to resolve. The
- * function stays because callers ask for it after a failed request,
- * where it is simply a no-op.
+ * Kept for existing callers; the base URL is selected at startup.
  */
 export function resetBaseUrl() {}
 

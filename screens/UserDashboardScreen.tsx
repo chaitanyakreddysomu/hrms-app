@@ -32,11 +32,9 @@ type Props = NativeStackScreenProps<RootStackParamList, "UserDashboard">;
  *
  * The same AppShell the admin side uses, with five bottom tabs:
  *
- *   Home   Attendance   Leaves   More   Profile
+ *   Home   Attendance   Leaves   Documents   Profile
  *
- * More is a launcher rather than a destination. Tapping it lifts
- * its sections out of the pill as a menu, the way a long press on
- * Profile offers Edit profile and Log out.
+ * The Documents tab also contains self-service pages linked from Home.
  */
 export default function UserDashboardScreen({ route, navigation }: Props) {
   const fallbackName = route.params?.name || "Employee";
@@ -128,6 +126,7 @@ export default function UserDashboardScreen({ route, navigation }: Props) {
             render: () => (
               <EmployeeHomeScreen
                 name={user.name}
+                profileImage={user.profileImage}
                 onNavigate={(tab, page) => shellRef.current?.(tab, page)}
               />
             ),
@@ -196,13 +195,10 @@ export default function UserDashboardScreen({ route, navigation }: Props) {
         ],
       },
       {
-        /* the launcher: its pages are the menu it opens */
-        key: "more",
-        label: "More",
-        icon: "ellipsis-horizontal-outline",
-        activeIcon: "ellipsis-horizontal",
-        asMenu: true,
-        pickerTitle: "More",
+        key: "documents",
+        label: "Documents",
+        icon: "folder-open-outline",
+        activeIcon: "folder-open",
         pages: [
           {
             key: "documents",
