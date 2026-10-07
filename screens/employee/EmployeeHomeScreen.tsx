@@ -19,13 +19,16 @@ import { setOpenShift } from "../../utils/shiftClock";
 import { useShellScroll } from "../../components/ScreenActions";
 import { useShellContentTop } from "../../components/shellMetrics";
 import { useToast } from "../../components/Toast";
+
 import {
   Card,
   IconTile,
   SectionTitle,
   StatusPill,
   formatDate,
+  formatMoney
 } from "./ui";
+
 
 /**
  * ============================================================
@@ -42,6 +45,25 @@ interface Props {
   unread?: number;
 }
 
+interface Holiday {
+  _id: string;
+  name: string;
+  type: string;
+  startDate: string;
+  endDate: string;
+}
+
+interface Payslip {
+  _id: string;
+  empId: string;
+  month: string;
+  year: number;
+  netPay: number;
+  status: "Draft" | "Created" | "Paid";
+  generatedOn?: string;
+  profileImage?: string;
+  avatar?: string;
+}
 export default function EmployeeHomeScreen({
   name,
   onNavigate,
@@ -53,7 +75,7 @@ export default function EmployeeHomeScreen({
   const { showToast } = useToast();
 
   const [today, setToday] = useState<any>(null);
-  const [leaves, setLeaves] = useState<any[]>([]);
+  // const [leaves, setLeaves] = useState<any[]>([]);
   const [updateSheetOpen, setUpdateSheetOpen] = useState(false);
 
   const [refreshing, setRefreshing] = useState(false);
@@ -62,28 +84,106 @@ export default function EmployeeHomeScreen({
   /** ticks once a second so the worked time counts up on screen */
   const [now, setNow] = useState(Date.now());
 
-  const load = useCallback(async () => {
-    try {
-      const session = await getAuthSession();
-      if (!session?.token) return;
+  const [upcomingHoliday, setUpcomingHoliday] = useState<Holiday | null>(
+  null
+);
 
-      const [todayRes, leaveRes] = await Promise.all([
-        apiFetch("/api/attendance/today", session.token),
-        apiFetch("/api/employee/leaves", session.token),
-      ]);
+const [latestPayslip, setLatestPayslip] = useState<Payslip | null>(
+  null
+);
 
-      if (todayRes.ok) setToday(await todayRes.json().catch(() => null));
 
-      if (leaveRes.ok) {
-        const data = await leaveRes.json().catch(() => []);
-        setLeaves(Array.isArray(data) ? data : []);
-      }
-    } catch (error) {
-      console.error("Home load error:", error);
-    } finally {
-      setRefreshing(false);
+const load = useCallback(async () => {
+  try {
+    const session = await getAuthSession();
+
+    if (!session?.token) return;
+
+    const currentYear = new Date().getFullYear();
+
+    const [todayRes, holidaysRes, payslipsRes] = await Promise.all([
+      apiFetch("/api/attendance/today", session.token),
+
+      apiFetch(
+        "/api/employee/holidays",
+        session.token
+      ),
+
+      apiFetch(
+        `/api/employee/payslips?year=${currentYear}`,
+        session.token
+      ),
+    ]);
+
+    // ============================================================
+    // TODAY'S ATTENDANCE
+    // ============================================================
+
+    if (todayRes.ok) {
+      const data = await todayRes.json().catch(() => null);
+      setToday(data);
     }
-  }, []);
+
+    // ============================================================
+    // UPCOMING HOLIDAY
+    // ============================================================
+
+    if (holidaysRes.ok) {
+      const data = await holidaysRes.json().catch(() => []);
+
+      if (Array.isArray(data)) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const upcoming = data
+          .filter((holiday: Holiday) => {
+            const endDate = new Date(
+              holiday.endDate || holiday.startDate
+            );
+
+            endDate.setHours(0, 0, 0, 0);
+
+            return endDate.getTime() >= today.getTime();
+          })
+          .sort(
+            (a: Holiday, b: Holiday) =>
+              new Date(a.startDate).getTime() -
+              new Date(b.startDate).getTime()
+          );
+
+        setUpcomingHoliday(upcoming[0] || null);
+      } else {
+        setUpcomingHoliday(null);
+      }
+    }
+
+    // ============================================================
+    // LATEST PAYSLIP
+    // ============================================================
+
+    if (payslipsRes.ok) {
+      const data = await payslipsRes.json().catch(() => []);
+
+      if (Array.isArray(data) && data.length > 0) {
+        // Backend returns newest payslip first
+        // because it uses .sort({ generatedOn: -1 })
+        setLatestPayslip(data[0]);
+      } else {
+        setLatestPayslip(null);
+      }
+    }
+  } catch (error) {
+    console.error("Employee home load error:", error);
+
+    showToast({
+      type: "error",
+      title: "Network Problem",
+      message: "Could not reach the server.",
+    });
+  } finally {
+    setRefreshing(false);
+  }
+}, [showToast]);
 
   useEffect(() => {
     load();
@@ -350,9 +450,43 @@ export default function EmployeeHomeScreen({
     >
       {/* GREETING */}
       <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 18 }}>
-        <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: "#2563EB", alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: "#DBEAFE", overflow: "hidden" }}>
-          {profileImage ? <Image source={{ uri: profileImage }} style={{ width: 46, height: 46, borderRadius: 23, borderWidth: 2, borderColor: "#FFFFFF" }} /> : <View style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: "#DBEAFE", alignItems: "center", justifyContent: "center" }}><Ionicons name="person" size={23} color="#2563EB" /></View>}
-        </View>
+        <View
+  style={{
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: "#2563EB",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "#DBEAFE",
+    overflow: "hidden",
+  }}
+>
+  {profileImage ? (
+    <Image
+      source={{ uri: profileImage }}
+      style={{
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+      }}
+    />
+  ) : (
+    <View
+      style={{
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: "#DBEAFE",
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      <Ionicons name="person" size={20} color="#2563EB" />
+    </View>
+  )}
+</View>
         <View style={{ flex: 1, marginLeft: 12 }}>
           <Text style={{ color: "#8A8D98", fontSize: 13, fontWeight: "600" }}>Good {new Date().getHours() < 12 ? "morning" : new Date().getHours() < 17 ? "afternoon" : "evening"}</Text>
           <Text style={{ color: "#171A24", fontSize: 22, fontWeight: "800", marginTop: 1 }}>Hello, {name.split(" ")[0]}</Text>
@@ -534,69 +668,231 @@ export default function EmployeeHomeScreen({
       </LinearGradient>
       </View>
 
-      <SectionTitle>Your services</SectionTitle>
-      <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 2, marginBottom: 8 }}>
-        {shortcuts.map((item) => (
-          <TouchableOpacity key={item.label} activeOpacity={0.75} onPress={() => onNavigate("documents", item.page)} style={{ width: "24%", alignItems: "center", paddingVertical: 8 }}>
-            <View style={{ width: 42, height: 42, backgroundColor: "#EFF6FF", borderRadius: 12, alignItems: "center", justifyContent: "center" }}>
-              <Ionicons name={item.icon} size={21} color="#2563EB" />
-            </View>
-            <Text style={{ color: "#334155", fontSize: 10, fontWeight: "700", marginTop: 6 }} numberOfLines={1}>{item.label}</Text>
-          </TouchableOpacity>
-        ))}
+      {/* <SectionTitle>Your services</SectionTitle> */}
+      <View
+  style={{
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 2,
+    marginBottom: 8,
+  }}
+>
+  {shortcuts.map((item) => (
+    <TouchableOpacity
+      key={item.label}
+      activeOpacity={0.75}
+      onPress={() => onNavigate("documents", item.page)}
+      style={{
+        width: "24%",
+        alignItems: "center",
+        paddingVertical: 10,
+        backgroundColor: "#FFFFFF",
+        borderRadius: 14,
+
+        // Small shadow
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 4,
+        elevation: 2,
+      }}
+    >
+      <View
+        style={{
+          width: 42,
+          height: 42,
+          backgroundColor: "#FFFFFF",
+          borderRadius: 12,
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <Ionicons
+          name={item.icon}
+          size={21}
+          color="#2563EB"
+        />
       </View>
 
-      {/* RECENT LEAVES */}
+      <Text
+        style={{
+          color: "#334155",
+          fontSize: 10,
+          fontWeight: "700",
+          marginTop: 6,
+        }}
+        numberOfLines={1}
+      >
+        {item.label}
+      </Text>
+    </TouchableOpacity>
+  ))}
+</View>
 
-      <SectionTitle action="See all" onAction={() => onNavigate("leaves")}>
-        Recent leave
-      </SectionTitle>
-      {leaves.length > 0 ? (
-        leaves.slice(0, 3).map((leave) => (
-            <Card key={leave._id}>
-              <View style={{ flexDirection: "row", alignItems: "center" }}>
-                <IconTile
-                  icon="calendar-outline"
-                  tone={
-                    leave.status === "Approved"
-                      ? "green"
-                      : leave.status === "Rejected"
-                      ? "red"
-                      : "amber"
-                  }
-                  size={38}
-                />
+{/* ============================================================
+    UPCOMING HOLIDAY
+============================================================ */}
 
-                <View style={{ flex: 1, marginLeft: 14 }}>
-                  <Text
-                    style={{
-                      color: "#0F172A",
-                      fontSize: 13,
-                      fontWeight: "800",
-                    }}
-                  >
-                    {leave.type} leave
-                  </Text>
+<SectionTitle>Upcoming Holiday</SectionTitle>
 
-                  <Text
-                    style={{
-                      color: "#94A3B8",
-                      fontSize: 11,
-                      fontWeight: "600",
-                      marginTop: 2,
-                    }}
-                  >
-                    {formatDate(leave.startDate)}
-                  </Text>
-                </View>
+{upcomingHoliday ? (
+  <Card
+    onPress={() => onNavigate("documents", "holidays")}
+    style={{
+      marginBottom: 14,
+      backgroundColor: "#FFFFFF",
+    }}
+  >
+    <View
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+      }}
+    >
+      <IconTile
+        icon="sunny-outline"
+        tone="blue"
+        size={42}
+      />
 
-                <StatusPill status={leave.status} />
-              </View>
-            </Card>
-        ))
-      ) : (
-        <Text style={{ color: "#94A3B8", fontSize: 13, marginBottom: 12 }}>No recent leave requests</Text>
-      )}
+      <View
+        style={{
+          flex: 1,
+          marginLeft: 14,
+        }}
+      >
+        <Text
+          style={{
+            color: "#0F172A",
+            fontSize: 14,
+            fontWeight: "800",
+          }}
+          numberOfLines={1}
+        >
+          {upcomingHoliday.name}
+        </Text>
+
+        <Text
+          style={{
+            color: "#94A3B8",
+            fontSize: 11,
+            fontWeight: "600",
+            marginTop: 3,
+          }}
+        >
+          {formatDate(upcomingHoliday.startDate)}
+        </Text>
+      </View>
+
+      <Ionicons
+        name="chevron-forward"
+        size={17}
+        color="#CBD5E1"
+      />
+    </View>
+  </Card>
+) : (
+  <Card
+    style={{
+      marginBottom: 14,
+    }}
+  >
+    <Text
+      style={{
+        color: "#94A3B8",
+        fontSize: 12,
+        fontWeight: "600",
+        textAlign: "center",
+        paddingVertical: 4,
+      }}
+    >
+      No upcoming holidays
+    </Text>
+  </Card>
+)}
+     {/* ============================================================
+    LATEST PAYSLIP
+============================================================ */}
+
+<SectionTitle>Latest Payslip</SectionTitle>
+
+{latestPayslip ? (
+  <Card
+    onPress={() => onNavigate("documents", "payslips")}
+  >
+    <View
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+      }}
+    >
+      <IconTile
+        icon="receipt-outline"
+        tone="green"
+        size={42}
+      />
+
+      <View
+        style={{
+          flex: 1,
+          marginLeft: 14,
+        }}
+      >
+        <Text
+          style={{
+            color: "#0F172A",
+            fontSize: 14,
+            fontWeight: "800",
+          }}
+        >
+          {latestPayslip.month} {latestPayslip.year}
+        </Text>
+
+        <Text
+          style={{
+            color: "#94A3B8",
+            fontSize: 11,
+            fontWeight: "600",
+            marginTop: 3,
+          }}
+        >
+          Net {formatMoney(latestPayslip.netPay)}
+        </Text>
+      </View>
+
+      <View
+        style={{
+          alignItems: "flex-end",
+        }}
+      >
+        <StatusPill status={latestPayslip.status} />
+
+        <Ionicons
+          name="chevron-forward"
+          size={17}
+          color="#CBD5E1"
+          style={{
+            marginTop: 7,
+          }}
+        />
+      </View>
+    </View>
+  </Card>
+) : (
+  <Card>
+    <Text
+      style={{
+        color: "#94A3B8",
+        fontSize: 12,
+        fontWeight: "600",
+        textAlign: "center",
+        paddingVertical: 4,
+      }}
+    >
+      No payslip available
+    </Text>
+  </Card>
+)}
 
       <TouchableOpacity activeOpacity={0.85} onPress={() => setUpdateSheetOpen(true)} style={{ minHeight: 54, borderRadius: 14, backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: "#DCE7F8", flexDirection: "row", alignItems: "center", justifyContent: "center", marginTop: 8, marginBottom: 20 }}>
         <Ionicons name="cloud-download-outline" size={19} color="#2563EB" />
