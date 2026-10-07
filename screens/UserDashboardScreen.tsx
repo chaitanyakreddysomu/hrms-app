@@ -181,15 +181,6 @@ export default function UserDashboardScreen({ route, navigation }: Props) {
             title: "My Leaves",
             subtitle: "Requests and balances",
             icon: "airplane-outline",
-            menu: [
-              {
-                key: "applyLeave",
-                label: "Apply for leave",
-                icon: "add-circle-outline",
-                action: "applyLeave",
-              },
-              { key: "refresh", label: "Refresh", icon: "refresh-outline" },
-            ],
             render: ({ reloadKey }) => (
               <EmployeeLeavesScreen key={reloadKey} />
             ),
@@ -216,6 +207,8 @@ export default function UserDashboardScreen({ route, navigation }: Props) {
             title: "Holidays",
             subtitle: "Company calendar",
             icon: "sunny-outline",
+            hidden: true,
+            highlightBottomTab: false,
             render: ({ reloadKey }) => (
               <EmployeeHolidaysScreen key={reloadKey} />
             ),
@@ -225,6 +218,8 @@ export default function UserDashboardScreen({ route, navigation }: Props) {
             title: "Payslips",
             subtitle: "Monthly salary",
             icon: "receipt-outline",
+            hidden: true,
+            highlightBottomTab: false,
             render: ({ reloadKey }) => (
               <EmployeePayslipsScreen key={reloadKey} />
             ),
@@ -234,6 +229,8 @@ export default function UserDashboardScreen({ route, navigation }: Props) {
             title: "Referrals",
             subtitle: "Candidates you sent",
             icon: "people-outline",
+            hidden: true,
+            highlightBottomTab: false,
             menu: [
               {
                 key: "addReferral",
@@ -252,6 +249,8 @@ export default function UserDashboardScreen({ route, navigation }: Props) {
             title: "Complaints",
             subtitle: "Raised with HR",
             icon: "chatbubble-ellipses-outline",
+            hidden: true,
+            highlightBottomTab: false,
             menu: [
               {
                 key: "raiseComplaint",
@@ -280,13 +279,6 @@ export default function UserDashboardScreen({ route, navigation }: Props) {
             subtitle: user.role,
             icon: "person-outline",
             menu: [
-              {
-                key: "editProfile",
-                label: "Edit profile",
-                icon: "create-outline",
-                action: "editProfile",
-              },
-              { key: "refresh", label: "Refresh", icon: "refresh-outline" },
               {
                 key: "logout",
                 label: "Log out",

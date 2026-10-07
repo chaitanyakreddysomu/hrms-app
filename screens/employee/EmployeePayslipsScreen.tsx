@@ -30,7 +30,6 @@ import {
   formatDate,
   formatMoney,
 } from "./ui";
-import ModalDismiss from "../../components/ModalDismiss";
 
 /**
  * ============================================================
@@ -41,10 +40,10 @@ import ModalDismiss from "../../components/ModalDismiss";
  * row opens the same breakdown the web page prints: earnings,
  * the statutory deductions and the paid day count.
  */
-interface Payslip {
+export interface Payslip {
   _id: string;
   month: string;
-  year: string;
+  year: string | number;
   netPay: number;
   status: "Draft" | "Created" | "Paid";
   generatedOn?: string;
@@ -66,11 +65,17 @@ interface Payslip {
 interface Props {
   listPath?: string;
   profilePath?: string;
+  modalOnly?: boolean;
+  selectedPayslip?: Payslip | null;
+  onClose?: () => void;
 }
 
 export default function EmployeePayslipsScreen({
   listPath = "/api/employee/payslips",
   profilePath = "/api/employee/profile",
+  modalOnly = false,
+  selectedPayslip = null,
+  onClose,
 }: Props = {}) {
   const shellScroll = useShellScroll();
   const shellTop = useShellContentTop(16);
@@ -86,6 +91,12 @@ export default function EmployeePayslipsScreen({
   const [profile, setProfile] = useState<any>(null);
 
   const [downloading, setDownloading] = useState(false);
+
+  const activePayslip = modalOnly ? selectedPayslip : open;
+  const closePayslip = () => {
+    if (modalOnly) onClose?.();
+    else setOpen(null);
+  };
 
   const shiftYear = (step: number) =>
     setYear((current) => String(Number(current) + step));
@@ -111,23 +122,25 @@ export default function EmployeePayslipsScreen({
       const session = await getAuthSession();
       if (!session?.token) return;
 
-      const res = await apiFetch(
-        `${listPath}?year=${year}`,
-        session.token
-      );
+      if (!modalOnly) {
+        const res = await apiFetch(
+          `${listPath}?year=${year}`,
+          session.token
+        );
 
-      if (!res.ok) {
-        showToast({
-          type: "error",
-          title: "Payslips Unavailable",
-          message: "Could not load this year.",
-        });
+        if (!res.ok) {
+          showToast({
+            type: "error",
+            title: "Payslips Unavailable",
+            message: "Could not load this year.",
+          });
 
-        return;
+          return;
+        }
+
+        const data = await res.json();
+        setPayslips(Array.isArray(data) ? data : []);
       }
-
-      const data = await res.json();
-      setPayslips(Array.isArray(data) ? data : []);
 
       /** the PDF header needs the name and the employee id */
       const who = await apiFetch(profilePath, session.token);
@@ -144,10 +157,10 @@ export default function EmployeePayslipsScreen({
       setLoading(false);
       setRefreshing(false);
     }
-  }, [year, listPath, profilePath]);
+  }, [year, listPath, profilePath, modalOnly]);
 
   useEffect(() => {
-    setLoading(true);
+    if (!modalOnly) setLoading(true);
     load();
   }, [load]);
 
@@ -572,7 +585,7 @@ export default function EmployeePayslipsScreen({
 
   return (
     <>
-      <ScrollView
+      {!modalOnly && <ScrollView
         {...swipe.panHandlers}
         {...shellScroll}
         showsVerticalScrollIndicator={false}
@@ -710,17 +723,17 @@ export default function EmployeePayslipsScreen({
             </Card>
           ))
         )}
-      </ScrollView>
+      </ScrollView>}
 
       {/* ============================================================
           PAYSLIP BREAKDOWN
       ============================================================ */}
 
       <Modal
-        visible={!!open}
+        visible={!!activePayslip}
         transparent
         animationType="slide"
-        onRequestClose={() => setOpen(null)}
+        onRequestClose={closePayslip}
       >
         <View
           style={{
@@ -729,7 +742,7 @@ export default function EmployeePayslipsScreen({
             backgroundColor: "rgba(0,0,0,0.5)",
           }}
         >
-          <Pressable style={{ flex: 1 }} onPress={() => setOpen(null)} />
+          <Pressable style={{ flex: 1 }} onPress={closePayslip} />
 
           <View
             style={{
@@ -768,11 +781,11 @@ export default function EmployeePayslipsScreen({
                   fontWeight: "800",
                 }}
               >
-                {open?.month} {open?.year}
+                {activePayslip?.month} {activePayslip?.year}
               </Text>
 
               <TouchableOpacity
-                onPress={() => setOpen(null)}
+                onPress={closePayslip}
                 style={{
                   width: 36,
                   height: 36,
@@ -786,7 +799,7 @@ export default function EmployeePayslipsScreen({
               </TouchableOpacity>
             </View>
 
-            {!!open && (
+            {!!activePayslip && (
               <ScrollView showsVerticalScrollIndicator={false}>
                 {/* the headline figure */}
                 <View
@@ -818,21 +831,21 @@ export default function EmployeePayslipsScreen({
                       marginTop: 4,
                     }}
                   >
-                    {formatMoney(open.netPay)}
+                    {formatMoney(activePayslip.netPay)}
                   </Text>
 
                   <View style={{ marginTop: 8 }}>
-                    <StatusPill status={open.status} />
+                    <StatusPill status={activePayslip.status} />
                   </View>
                 </View>
 
                 <SectionTitle>Earnings</SectionTitle>
 
                 <Card>
-                  <Row label="Basic salary" value={formatMoney(open.basicSalary)} />
+                  <Row label="Basic salary" value={formatMoney(activePayslip.basicSalary)} />
                   <Row
                     label="Generated on"
-                    value={formatDate(open.generatedOn)}
+                    value={formatDate(activePayslip.generatedOn)}
                     last
                   />
                 </Card>
@@ -840,17 +853,17 @@ export default function EmployeePayslipsScreen({
                 <SectionTitle>Deductions</SectionTitle>
 
                 <Card>
-                  <Row label="Provident fund" value={formatMoney(open.pf)} />
-                  <Row label="ESI" value={formatMoney(open.esi)} />
-                  <Row label="Professional tax" value={formatMoney(open.pt)} />
-                  <Row label="TDS" value={formatMoney(open.tds)} />
+                  <Row label="Provident fund" value={formatMoney(activePayslip.pf)} />
+                  <Row label="ESI" value={formatMoney(activePayslip.esi)} />
+                  <Row label="Professional tax" value={formatMoney(activePayslip.pt)} />
+                  <Row label="TDS" value={formatMoney(activePayslip.tds)} />
                   <Row
                     label="Leave deduction"
-                    value={formatMoney(open.leaveDeduction)}
+                    value={formatMoney(activePayslip.leaveDeduction)}
                   />
                   <Row
                     label="Total deducted"
-                    value={formatMoney(deductions(open))}
+                    value={formatMoney(deductions(activePayslip))}
                     last
                   />
                 </Card>
@@ -860,12 +873,12 @@ export default function EmployeePayslipsScreen({
                 <Card>
                   <Row
                     label="Working days"
-                    value={open.totalWorkingDays ?? "N/A"}
+                    value={activePayslip.totalWorkingDays ?? "N/A"}
                   />
-                  <Row label="Paid days" value={open.paidDays ?? "N/A"} />
+                  <Row label="Paid days" value={activePayslip.paidDays ?? "N/A"} />
                   <Row
                     label="Leaves taken"
-                    value={open.leavesTaken ?? "N/A"}
+                    value={activePayslip.leavesTaken ?? "N/A"}
                     last
                   />
                 </Card>
@@ -873,7 +886,7 @@ export default function EmployeePayslipsScreen({
                 <PrimaryButton
                   label="Download PDF"
                   icon="download-outline"
-                  onPress={() => download(open)}
+                  onPress={() => download(activePayslip)}
                   busy={downloading}
                   style={{ marginTop: 10, marginBottom: 14 }}
                 />

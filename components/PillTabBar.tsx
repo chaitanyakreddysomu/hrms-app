@@ -24,7 +24,7 @@ export interface PillTab {
 
 interface Props {
   tabs: PillTab[];
-  activeKey: string;
+  activeKey: string | null;
   onChange: (key: string) => void;
   onLongPress?: (key: string) => void;
   bottomInset?: number;
@@ -59,11 +59,8 @@ export default function PillTabBar({
    * ============================================================
    */
 
-  const activeIndex = Math.max(
-    0,
-    tabs.findIndex(
-      (tab) => tab.key === activeKey
-    )
+  const activeIndex = tabs.findIndex(
+    (tab) => tab.key === activeKey
   );
 
   /*
@@ -214,7 +211,7 @@ export default function PillTabBar({
   const animateToTab = (
     index: number
   ) => {
-    if (slotWidth <= 0) {
+    if (slotWidth <= 0 || index < 0) {
       return;
     }
 
@@ -263,7 +260,8 @@ export default function PillTabBar({
   useEffect(() => {
     if (
       barWidth <= 0 ||
-      slotWidth <= 0
+      slotWidth <= 0 ||
+      activeIndex < 0
     ) {
       return;
     }
@@ -548,14 +546,7 @@ export default function PillTabBar({
    * ============================================================
    */
 
-  const visualTab =
-    tabs[visualIndex] ??
-    tabs[activeIndex] ??
-    tabs[0];
-
-  if (!visualTab) {
-    return null;
-  }
+  const visualTab = visualIndex >= 0 ? tabs[visualIndex] : null;
 
   return (
     <View
@@ -599,7 +590,7 @@ export default function PillTabBar({
            * Only the icon + label move.
            */}
 
-          <Animated.View
+          {visualTab && <Animated.View
             pointerEvents="none"
             style={[
               styles.activeContent,
@@ -655,7 +646,7 @@ export default function PillTabBar({
             >
               {visualTab.label}
             </Text>
-          </Animated.View>
+          </Animated.View>}
 
           {/*
            * =====================================================

@@ -12,6 +12,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Location from "expo-location";
 import UpdateSheet from "../../components/UpdateSheet";
+import EmployeePayslipsScreen, { type Payslip } from "./EmployeePayslipsScreen";
 
 import { getAuthSession } from "../../utils/authStorage";
 import { apiFetch } from "../../utils/api";
@@ -53,17 +54,6 @@ interface Holiday {
   endDate: string;
 }
 
-interface Payslip {
-  _id: string;
-  empId: string;
-  month: string;
-  year: number;
-  netPay: number;
-  status: "Draft" | "Created" | "Paid";
-  generatedOn?: string;
-  profileImage?: string;
-  avatar?: string;
-}
 export default function EmployeeHomeScreen({
   name,
   onNavigate,
@@ -71,10 +61,11 @@ export default function EmployeeHomeScreen({
   unread = 0,
 }: Props) {
   const shellScroll = useShellScroll();
-  const shellTop = useShellContentTop(16, true);
+  const shellTop = useShellContentTop(0, true);
   const { showToast } = useToast();
 
   const [today, setToday] = useState<any>(null);
+  const [selectedPayslip, setSelectedPayslip] = useState<Payslip | null>(null);
   // const [leaves, setLeaves] = useState<any[]>([]);
   const [updateSheetOpen, setUpdateSheetOpen] = useState(false);
 
@@ -432,8 +423,8 @@ const load = useCallback(async () => {
       contentContainerStyle={{
         padding: 16,
         backgroundColor: "#FAF9F7",
-        /** clears the bar, then 14 of air before the first card */
-        paddingTop: shellTop + 14,
+        /** begins just below the system status bar */
+        paddingTop: shellTop + 4,
         paddingBottom: 150,
       }}
       refreshControl={
@@ -678,16 +669,24 @@ const load = useCallback(async () => {
   }}
 >
   {shortcuts.map((item) => (
-    <TouchableOpacity
-      key={item.label}
-      activeOpacity={0.75}
-      onPress={() => onNavigate("documents", item.page)}
+  <TouchableOpacity
+    key={item.label}
+    activeOpacity={0.75}
+    onPress={() => onNavigate("documents", item.page)}
+    style={{
+      width: "24%",
+      alignItems: "center",
+    }}
+  >
+    {/* Small white icon box */}
+    <View
       style={{
-        width: "24%",
-        alignItems: "center",
-        paddingVertical: 10,
+        width: 44,
+        height: 44,
         backgroundColor: "#FFFFFF",
-        borderRadius: 14,
+        borderRadius: 12,
+        alignItems: "center",
+        justifyContent: "center",
 
         // Small shadow
         shadowColor: "#000",
@@ -697,36 +696,28 @@ const load = useCallback(async () => {
         elevation: 2,
       }}
     >
-      <View
-        style={{
-          width: 42,
-          height: 42,
-          backgroundColor: "#FFFFFF",
-          borderRadius: 12,
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        <Ionicons
-          name={item.icon}
-          size={21}
-          color="#2563EB"
-        />
-      </View>
+      <Ionicons
+        name={item.icon}
+        size={21}
+        color="#2563EB"
+      />
+    </View>
 
-      <Text
-        style={{
-          color: "#334155",
-          fontSize: 10,
-          fontWeight: "700",
-          marginTop: 6,
-        }}
-        numberOfLines={1}
-      >
-        {item.label}
-      </Text>
-    </TouchableOpacity>
-  ))}
+    {/* Text outside white box */}
+    <Text
+      style={{
+        color: "#334155",
+        fontSize: 10,
+        fontWeight: "700",
+        marginTop: 7,
+        textAlign: "center",
+      }}
+      numberOfLines={1}
+    >
+      {item.label}
+    </Text>
+  </TouchableOpacity>
+))}
 </View>
 
 {/* ============================================================
@@ -817,9 +808,7 @@ const load = useCallback(async () => {
 <SectionTitle>Latest Payslip</SectionTitle>
 
 {latestPayslip ? (
-  <Card
-    onPress={() => onNavigate("documents", "payslips")}
-  >
+  <Card onPress={() => setSelectedPayslip(latestPayslip)}>
     <View
       style={{
         flexDirection: "row",
@@ -832,49 +821,19 @@ const load = useCallback(async () => {
         size={42}
       />
 
-      <View
-        style={{
-          flex: 1,
-          marginLeft: 14,
-        }}
-      >
-        <Text
-          style={{
-            color: "#0F172A",
-            fontSize: 14,
-            fontWeight: "800",
-          }}
-        >
-          {latestPayslip.month} {latestPayslip.year}
-        </Text>
-
-        <Text
-          style={{
-            color: "#94A3B8",
-            fontSize: 11,
-            fontWeight: "600",
-            marginTop: 3,
-          }}
-        >
-          Net {formatMoney(latestPayslip.netPay)}
-        </Text>
+      <View style={{ flex: 1, marginLeft: 14 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
+          <Text style={{ color: "#0F172A", fontSize: 14, fontWeight: "800" }}>
+            {latestPayslip.month} {latestPayslip.year}
+          </Text>
+          <StatusPill status={latestPayslip.status} />
+        </View>
       </View>
 
-      <View
-        style={{
-          alignItems: "flex-end",
-        }}
-      >
-        <StatusPill status={latestPayslip.status} />
-
-        <Ionicons
-          name="chevron-forward"
-          size={17}
-          color="#CBD5E1"
-          style={{
-            marginTop: 7,
-          }}
-        />
+      <View style={{ alignItems: "flex-end", marginLeft: 8 }}>
+        <Text style={{ color: "#059669", fontSize: 14, fontWeight: "800" }}>
+          {formatMoney(latestPayslip.netPay)}
+        </Text>
       </View>
     </View>
   </Card>
@@ -899,6 +858,11 @@ const load = useCallback(async () => {
         <Text style={{ color: "#2563EB", fontSize: 14, fontWeight: "700", marginLeft: 9 }}>Check for updates</Text>
       </TouchableOpacity>
       <UpdateSheet visible={updateSheetOpen} onClose={() => setUpdateSheetOpen(false)} />
+      <EmployeePayslipsScreen
+        modalOnly
+        selectedPayslip={selectedPayslip}
+        onClose={() => setSelectedPayslip(null)}
+      />
     </ScrollView>
   );
 }

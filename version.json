@@ -1,8 +1,8 @@
 {
-  "latestVersion": "1.2.1",
-  "downloadUrl": "https://github.com/chaitanyakreddysomu/hrms-app/releases/download/v1.2.1/ics-hrms-v1.2.1.apk",
-  "changelog": "v1.2.1 - Small UI tweaks",
+  "latestVersion": "1.2.2",
+  "downloadUrl": "https://github.com/chaitanyakreddysomu/hrms-app/releases/download/v1.2.2/ics-hrms-v1.2.2.apk",
+  "changelog": "v1.2.2 - Small UI tweaks",
   "features": [
-    "Small UI tweaks to the employee home screen, service shortcuts, and attendance card"
+    "Small UI tweaks"
   ]
 }

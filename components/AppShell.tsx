@@ -69,6 +69,8 @@ export interface ShellPage {
   subtitle?: string;
   /** hide the floating title bar on focused landing pages */
   hideHeader?: boolean;
+  /** whether this page should select its parent in the bottom bar */
+  highlightBottomTab?: boolean;
   /** icon shown for this page in the section picker */
   icon: keyof typeof Ionicons.glyphMap;
   /**
@@ -722,7 +724,7 @@ function Shell({ tabs, initialTabKey, logo, navigateRef, switcher }: Props) {
 
       <PillTabBar
         tabs={bottomTabs}
-        activeKey={tab.key}
+        activeKey={page.highlightBottomTab === false ? null : tab.key}
         onChange={(key) => {
           if (pickerOpen) togglePicker(false);
 
