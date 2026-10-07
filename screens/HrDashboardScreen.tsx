@@ -16,13 +16,13 @@ import HrAttendanceScreen from "./hr/HrAttendanceScreen";
 import HrLeavesScreen from "./hr/HrLeavesScreen";
 import HrRequestsScreen from "./hr/HrRequestsScreen";
 import HrComplaintsScreen from "./hr/HrComplaintsScreen";
-import HrMyHomeScreen from "./hr/HrMyHomeScreen";
 import HrBirthdaysScreen from "./hr/HrBirthdaysScreen";
 import HrReferralsScreen from "./hr/HrReferralsScreen";
 import HrTeamPayslipsScreen from "./hr/HrTeamPayslipsScreen";
 import AdminHolidaysScreen from "./admin/AdminHolidaysScreen";
 
 import EmployeeAttendanceScreen from "./employee/EmployeeAttendanceScreen";
+import EmployeeHomeScreen from "./employee/EmployeeHomeScreen";
 import EmployeeLeavesScreen from "./employee/EmployeeLeavesScreen";
 import EmployeeDocumentsScreen from "./employee/EmployeeDocumentsScreen";
 import EmployeeHolidaysScreen from "./employee/EmployeeHolidaysScreen";
@@ -71,7 +71,7 @@ export default function HrDashboardScreen({ route, navigation }: Props) {
   /** the bell count, push registration and the tap that opens it */
   const { unread } = useNotifications({
     countPath: "/api/notifications/unread-count",
-    onOpen: () => shellRef.current?.("more", "notifications"),
+    onOpen: () => shellRef.current?.("documents", "notifications"),
   });
 
   useEffect(() => {
@@ -171,17 +171,14 @@ export default function HrDashboardScreen({ route, navigation }: Props) {
             title: "HR Dashboard",
             subtitle: user.role,
             icon: "grid-outline",
-            headerAction: {
-              icon: "notifications-outline",
-              badge: unread,
-              onPress: () => shellRef.current?.("more", "notifications"),
-            },
+            hideHeader: true,
             render: () => (
               <HrHomeScreen
                 name={user.name}
-                role={user.role}
                 profileImage={user.profileImage}
+                unread={unread}
                 onNavigate={(tab, page) => shellRef.current?.(tab, page)}
+                onSwitchView={() => setView("my")}
               />
             ),
           },
@@ -250,18 +247,32 @@ export default function HrDashboardScreen({ route, navigation }: Props) {
         ],
       },
       {
-        key: "more",
-        label: "More",
-        icon: "ellipsis-horizontal-outline",
-        activeIcon: "ellipsis-horizontal",
-        asMenu: true,
-        pickerTitle: "More",
+        key: "documents",
+        label: "Documents",
+        icon: "folder-open-outline",
+        activeIcon: "folder-open",
         pages: [
+          {
+            key: "documents",
+            title: "Documents",
+            subtitle: "Upload and track",
+            icon: "folder-open-outline",
+            render: ({ reloadKey }) => (
+              <EmployeeDocumentsScreen
+                key={reloadKey}
+                profilePath="/api/hr/profile"
+                uploadPath="/api/hr/documents/upload"
+                previewPath="/api/hr/documents/preview"
+              />
+            ),
+          },
           {
             key: "requests",
             title: "Signup Requests",
             subtitle: "Waiting for approval",
             icon: "person-add-outline",
+            hidden: true,
+            highlightBottomTab: false,
             render: ({ reloadKey }) => <HrRequestsScreen key={reloadKey} />,
           },
           {
@@ -269,6 +280,8 @@ export default function HrDashboardScreen({ route, navigation }: Props) {
             title: "Complaints",
             subtitle: "Raised by employees",
             icon: "chatbubble-ellipses-outline",
+            hidden: true,
+            highlightBottomTab: false,
             searchable: true,
             searchPlaceholder: "Search subject or employee",
             render: ({ reloadKey }) => (
@@ -280,6 +293,8 @@ export default function HrDashboardScreen({ route, navigation }: Props) {
             title: "Payslips",
             subtitle: "Across the team",
             icon: "receipt-outline",
+            hidden: true,
+            highlightBottomTab: false,
             render: ({ reloadKey }) => (
               <HrTeamPayslipsScreen key={reloadKey} />
             ),
@@ -289,6 +304,8 @@ export default function HrDashboardScreen({ route, navigation }: Props) {
             title: "Referrals",
             subtitle: "Candidates put forward",
             icon: "people-circle-outline",
+            hidden: true,
+            highlightBottomTab: false,
             searchable: true,
             searchPlaceholder: "Search name, email or role",
             render: ({ reloadKey }) => <HrReferralsScreen key={reloadKey} />,
@@ -298,6 +315,8 @@ export default function HrDashboardScreen({ route, navigation }: Props) {
             title: "Birthdays",
             subtitle: "Today and coming up",
             icon: "gift-outline",
+            hidden: true,
+            highlightBottomTab: false,
             render: ({ reloadKey }) => <HrBirthdaysScreen key={reloadKey} />,
           },
           {
@@ -305,6 +324,8 @@ export default function HrDashboardScreen({ route, navigation }: Props) {
             title: "Holidays",
             subtitle: "Company calendar",
             icon: "sunny-outline",
+            hidden: true,
+            highlightBottomTab: false,
             menu: [
               {
                 key: "addHoliday",
@@ -326,6 +347,7 @@ export default function HrDashboardScreen({ route, navigation }: Props) {
             title: "Notifications",
             icon: "notifications-outline",
             hidden: true,
+            highlightBottomTab: false,
             menu: [
               {
                 key: "markAllRead",
@@ -365,14 +387,20 @@ export default function HrDashboardScreen({ route, navigation }: Props) {
             title: "My Workspace",
             subtitle: user.role,
             icon: "grid-outline",
-            headerAction: {
-              icon: "notifications-outline",
-              badge: unread,
-              onPress: () => shellRef.current?.("more", "notifications"),
-            },
+            hideHeader: true,
             render: () => (
-              <HrMyHomeScreen
+              <EmployeeHomeScreen
                 name={user.name}
+                profileImage={user.profileImage}
+                unread={unread}
+                attendancePath="/api/hr/attendance/status"
+                payslipsPath="/api/hr/payslips"
+                payslipProfilePath="/api/hr/profile"
+                punchInPath="/api/hr/punch-in"
+                punchOutPath="/api/hr/punch-out"
+                notificationsTab="documents"
+                switchLabel="Switch to HR view"
+                onSwitchView={() => setView("hr")}
                 onNavigate={(tab, page) => shellRef.current?.(tab, page)}
               />
             ),
@@ -427,15 +455,13 @@ export default function HrDashboardScreen({ route, navigation }: Props) {
         ],
       },
       {
-        key: "more",
-        label: "More",
-        icon: "ellipsis-horizontal-outline",
-        activeIcon: "ellipsis-horizontal",
-        asMenu: true,
-        pickerTitle: "More",
+        key: "documents",
+        label: "Documents",
+        icon: "folder-open-outline",
+        activeIcon: "folder-open",
         pages: [
           {
-            key: "mydocuments",
+            key: "documents",
             title: "My Documents",
             subtitle: "Upload and track",
             icon: "folder-open-outline",
@@ -453,15 +479,19 @@ export default function HrDashboardScreen({ route, navigation }: Props) {
             title: "Holidays",
             subtitle: "Company calendar",
             icon: "sunny-outline",
+            hidden: true,
+            highlightBottomTab: false,
             render: ({ reloadKey }) => (
               <EmployeeHolidaysScreen key={reloadKey} />
             ),
           },
           {
-            key: "myreferrals",
+            key: "referrals",
             title: "My Referrals",
             subtitle: "Candidates you sent",
             icon: "people-outline",
+            hidden: true,
+            highlightBottomTab: false,
             menu: [
               {
                 key: "addReferral",
@@ -476,10 +506,12 @@ export default function HrDashboardScreen({ route, navigation }: Props) {
             ),
           },
           {
-            key: "mypayslips",
+            key: "payslips",
             title: "My Payslips",
             subtitle: "Monthly salary",
             icon: "receipt-outline",
+            hidden: true,
+            highlightBottomTab: false,
             render: ({ reloadKey }) => (
               <EmployeePayslipsScreen
                 key={reloadKey}
@@ -493,6 +525,7 @@ export default function HrDashboardScreen({ route, navigation }: Props) {
             title: "Notifications",
             icon: "notifications-outline",
             hidden: true,
+            highlightBottomTab: false,
             menu: [
               {
                 key: "markAllRead",
@@ -511,10 +544,12 @@ export default function HrDashboardScreen({ route, navigation }: Props) {
             ),
           },
           {
-            key: "mycomplaints",
+            key: "complaints",
             title: "My Complaints",
             subtitle: "Raised by you",
             icon: "chatbubble-ellipses-outline",
+            hidden: true,
+            highlightBottomTab: false,
             menu: [
               {
                 key: "raiseComplaint",
@@ -570,14 +605,6 @@ export default function HrDashboardScreen({ route, navigation }: Props) {
         tabs={view === "hr" ? hrTabs : myTabs}
         navigateRef={shellRef}
         logo={APP_LOGO}
-        switcher={{
-          value: view,
-          options: [
-            { value: "hr", label: "HR view", icon: "briefcase-outline" },
-            { value: "my", label: "My view", icon: "person-outline" },
-          ],
-          onChange: (next) => setView(next as "hr" | "my"),
-        }}
       />
 
       <ConfirmDialog

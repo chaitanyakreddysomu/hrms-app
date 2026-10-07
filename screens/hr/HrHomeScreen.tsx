@@ -11,6 +11,7 @@ import { Ionicons } from "@expo/vector-icons";
 
 import { getAuthSession } from "../../utils/authStorage";
 import { apiFetch } from "../../utils/api";
+import UpdateSheet from "../../components/UpdateSheet";
 import { useShellScroll } from "../../components/ScreenActions";
 import { useShellContentTop } from "../../components/shellMetrics";
 import { useToast } from "../../components/Toast";
@@ -28,9 +29,10 @@ import { Card, IconTile, SectionTitle, ToneName, formatDate } from "./ui";
  */
 interface Props {
   name: string;
-  role: string;
   profileImage?: string;
+  unread?: number;
   onNavigate: (tab: string, page?: string) => void;
+  onSwitchView: () => void;
 }
 
 interface Birthday {
@@ -51,12 +53,13 @@ interface Holiday {
 
 export default function HrHomeScreen({
   name,
-  role,
   profileImage,
+  unread = 0,
   onNavigate,
+  onSwitchView,
 }: Props) {
   const shellScroll = useShellScroll();
-  const shellTop = useShellContentTop(16);
+  const shellTop = useShellContentTop(8, true);
   const { showToast } = useToast();
 
   const [data, setData] = useState<any>(null);
@@ -65,6 +68,7 @@ export default function HrHomeScreen({
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [updateSheetOpen, setUpdateSheetOpen] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -150,7 +154,7 @@ export default function HrHomeScreen({
     <ScrollView
       {...shellScroll}
       showsVerticalScrollIndicator={false}
-      contentContainerStyle={{ padding: 16, paddingTop: shellTop, paddingBottom: 150 }}
+      contentContainerStyle={{ padding: 16, backgroundColor: "#FAF9F7", paddingTop: shellTop + 4, paddingBottom: 150 }}
       refreshControl={
         <RefreshControl
           progressViewOffset={shellTop}
@@ -167,84 +171,36 @@ export default function HrHomeScreen({
       {/* GREETING */}
       {/* ===================================================== */}
 
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          marginBottom: 6,
-        }}
-      >
-        <View style={{ flex: 1, paddingRight: 14 }}>
-          <Text
-            style={{
-              color: "#94A3B8",
-              fontSize: 10,
-              fontWeight: "800",
-              letterSpacing: 1.2,
-            }}
-          >
-            {new Date()
-              .toLocaleDateString("en-GB", {
-                weekday: "long",
-                day: "2-digit",
-                month: "long",
-              })
-              .toUpperCase()}
-          </Text>
-
-          <Text
-            style={{
-              color: "#0F172A",
-              fontSize: 22,
-              fontWeight: "800",
-              marginTop: 6,
-            }}
-          >
-            {greeting},{" "}
-            <Text style={{ color: "#2563EB" }}>{name.split(" ")[0]}</Text>
-          </Text>
-
-          <Text
-            style={{
-              color: "#94A3B8",
-              fontSize: 12,
-              marginTop: 4,
-              lineHeight: 18,
-            }}
-          >
-            Here is what is happening across the team today.
+      <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 18 }}>
+        <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: "#2563EB", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "#DBEAFE", overflow: "hidden" }}>
+          {profileImage ? (
+            <Image source={{ uri: profileImage }} style={{ width: 40, height: 40, borderRadius: 20 }} />
+          ) : (
+            <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: "#DBEAFE", alignItems: "center", justifyContent: "center" }}>
+              <Ionicons name="person" size={20} color="#2563EB" />
+            </View>
+          )}
+        </View>
+        <View style={{ flex: 1, marginLeft: 12 }}>
+          <Text style={{ color: "#8A8D98", fontSize: 13, fontWeight: "600" }}>{greeting}</Text>
+          <Text style={{ color: "#171A24", fontSize: 22, fontWeight: "800", marginTop: 1 }}>
+            Hello, {name.split(" ")[0]}
           </Text>
         </View>
-
-        {profileImage ? (
-          <Image
-            source={{ uri: profileImage }}
-            style={{
-              width: 56,
-              height: 56,
-              borderRadius: 28,
-              backgroundColor: "#F1F5F9",
-            }}
-          />
-        ) : (
-          <View
-            style={{
-              width: 56,
-              height: 56,
-              borderRadius: 28,
-              backgroundColor: "#2563EB",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <Text
-              style={{ color: "#FFFFFF", fontSize: 22, fontWeight: "800" }}
-            >
-              {name.charAt(0).toUpperCase()}
-            </Text>
-          </View>
-        )}
+        <TouchableOpacity onPress={() => onNavigate("documents", "notifications")} activeOpacity={0.75} style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: "#FFFFFF", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "#F0EFED" }}>
+          <Ionicons name="notifications-outline" size={20} color="#202331" />
+          {unread > 0 ? (
+            <View style={{ position: "absolute", top: 1, right: 1, minWidth: 17, height: 17, paddingHorizontal: 4, borderRadius: 9, backgroundColor: "#EF4444", alignItems: "center", justifyContent: "center" }}>
+              <Text style={{ color: "#FFFFFF", fontSize: 9, fontWeight: "800" }}>{unread > 99 ? "99+" : unread}</Text>
+            </View>
+          ) : null}
+        </TouchableOpacity>
       </View>
+
+      <TouchableOpacity activeOpacity={0.8} onPress={onSwitchView} style={{ alignSelf: "flex-start", flexDirection: "row", alignItems: "center", borderRadius: 18, backgroundColor: "#EFF6FF", paddingHorizontal: 12, paddingVertical: 8, marginTop: -8, marginBottom: 14 }}>
+        <Ionicons name="swap-horizontal-outline" size={16} color="#2563EB" />
+        <Text style={{ color: "#2563EB", fontSize: 11, fontWeight: "800", marginLeft: 6 }}>Switch to My view</Text>
+      </TouchableOpacity>
 
       {/* ===================================================== */}
       {/* TODAY AT A GLANCE */}
@@ -288,6 +244,26 @@ export default function HrHomeScreen({
           tone="amber"
           onPress={() => onNavigate("leaves")}
         />
+      </View>
+
+      {/* HR SHORTCUTS */}
+      <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 2, marginBottom: 12 }}>
+        {[
+          { label: "Holidays", icon: "sunny-outline" as const, page: "holidays" },
+          { label: "Complaints", icon: "chatbubble-ellipses-outline" as const, page: "complaints" },
+          { label: "Payslips", icon: "receipt-outline" as const, page: "payslips" },
+          { label: "Referrals", icon: "people-outline" as const, page: "referrals" },
+          { label: "Signup requests", icon: "person-add-outline" as const, page: "requests" },
+        ].map((item) => (
+          <TouchableOpacity key={item.page} activeOpacity={0.75} onPress={() => onNavigate("documents", item.page)} style={{ width: "19%", alignItems: "center" }}>
+            <View style={{ width: 40, height: 40, backgroundColor: "#FFFFFF", borderRadius: 12, alignItems: "center", justifyContent: "center", shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 4, elevation: 2 }}>
+              <Ionicons name={item.icon} size={20} color="#2563EB" />
+            </View>
+            <Text style={{ color: "#334155", fontSize: 8, fontWeight: "700", marginTop: 6, textAlign: "center" }} numberOfLines={2}>
+              {item.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
       </View>
 
       {/* ===================================================== */}
@@ -394,245 +370,81 @@ export default function HrHomeScreen({
       </Card>
 
       {/* ===================================================== */}
+      {/* UPCOMING HOLIDAY */}
+      <SectionTitle action="See all" onAction={() => onNavigate("documents", "holidays")}>
+        Upcoming holiday
+      </SectionTitle>
+      {upcoming[0] ? (
+        <Card onPress={() => onNavigate("documents", "holidays")}>
+          <View style={{ flexDirection: "row", alignItems: "center" }}>
+            <IconTile icon="sunny-outline" tone="amber" size={42} />
+            <View style={{ flex: 1, marginLeft: 14 }}>
+              <Text style={{ color: "#0F172A", fontSize: 13, fontWeight: "800" }} numberOfLines={1}>{upcoming[0].name}</Text>
+              <Text style={{ color: "#94A3B8", fontSize: 11, fontWeight: "600", marginTop: 3 }}>{formatDate(upcoming[0].startDate)}</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={17} color="#CBD5E1" />
+          </View>
+        </Card>
+      ) : (
+        <Card onPress={() => onNavigate("documents", "holidays")}>
+          <Text style={{ color: "#94A3B8", fontSize: 12, fontWeight: "600", textAlign: "center", paddingVertical: 4 }}>No upcoming holidays</Text>
+        </Card>
+      )}
+
+      {/* UPCOMING BIRTHDAYS */}
+      <SectionTitle action="See all" onAction={() => onNavigate("documents", "birthdays")}>
+        Upcoming birthdays
+      </SectionTitle>
+      <Card onPress={() => onNavigate("documents", "birthdays")}>
+        {birthdays.length === 0 ? (
+          <Text style={{ color: "#94A3B8", fontSize: 12, fontWeight: "600", textAlign: "center", paddingVertical: 4 }}>
+            {loading ? "Checking the calendar…" : "No upcoming birthdays"}
+          </Text>
+        ) : birthdays.slice(0, 3).map((person, index) => (
+          <View key={person.id || person.name} style={{ flexDirection: "row", alignItems: "center", marginBottom: index === Math.min(birthdays.length, 3) - 1 ? 0 : 14 }}>
+            {person.profileImage ? (
+              <Image source={{ uri: person.profileImage }} style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: "#F1F5F9" }} />
+            ) : (
+              <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: "#FFFBEB", alignItems: "center", justifyContent: "center" }}>
+                <Text style={{ color: "#D97706", fontSize: 15, fontWeight: "800" }}>{(person.name || "?").charAt(0).toUpperCase()}</Text>
+              </View>
+            )}
+            <View style={{ flex: 1, marginLeft: 12 }}>
+              <Text style={{ color: "#0F172A", fontSize: 13, fontWeight: "800" }} numberOfLines={1}>{person.name}</Text>
+              <Text style={{ color: "#94A3B8", fontSize: 11, fontWeight: "600", marginTop: 2 }} numberOfLines={1}>{person.designation || person.role || "Employee"}</Text>
+            </View>
+            <Text style={{ fontSize: 18 }}>🎂</Text>
+          </View>
+        ))}
+      </Card>
+
       {/* WORKFORCE STATUS */}
-      {/* ===================================================== */}
+      <SectionTitle action="Employees" onAction={() => onNavigate("employees")}>
+        Workforce status
+      </SectionTitle>
+      <Card>
+        {data?.departments?.length ? data.departments.map((dept: any, index: number) => (
+          <View key={dept.name} style={{ marginBottom: index === data.departments.length - 1 ? 0 : 14 }}>
+            <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 6 }}>
+              <Text style={{ color: "#0F172A", fontSize: 12, fontWeight: "700" }}>{dept.name}</Text>
+              <Text style={{ color: "#94A3B8", fontSize: 12, fontWeight: "700" }}>{dept.count} · {dept.percent}</Text>
+            </View>
+            <View style={{ height: 6, borderRadius: 3, backgroundColor: "#F1F5F9", overflow: "hidden" }}>
+              <View style={{ width: dept.percent || "0%", height: "100%", backgroundColor: "#2563EB" }} />
+            </View>
+          </View>
+        )) : (
+          <Text style={{ color: "#94A3B8", fontSize: 12, fontWeight: "600", textAlign: "center", paddingVertical: 4 }}>
+            {loading ? "Loading workforce status…" : "No department data available"}
+          </Text>
+        )}
+      </Card>
 
-      {!!data?.departments?.length && (
-        <>
-          <SectionTitle
-            action="Employees"
-            onAction={() => onNavigate("employees")}
-          >
-            Workforce status
-          </SectionTitle>
-
-          <Card>
-            {data.departments.map((dept: any, index: number) => (
-              <View
-                key={dept.name}
-                style={{
-                  marginBottom:
-                    index === data.departments.length - 1 ? 0 : 14,
-                }}
-              >
-                <View
-                  style={{
-                    flexDirection: "row",
-                    justifyContent: "space-between",
-                    marginBottom: 6,
-                  }}
-                >
-                  <Text
-                    style={{
-                      color: "#0F172A",
-                      fontSize: 12,
-                      fontWeight: "700",
-                    }}
-                  >
-                    {dept.name}
-                  </Text>
-
-                  <Text
-                    style={{
-                      color: "#94A3B8",
-                      fontSize: 12,
-                      fontWeight: "700",
-                    }}
-                  >
-                    {dept.count} · {dept.percent}
-                  </Text>
-                </View>
-
-                <View
-                  style={{
-                    height: 6,
-                    borderRadius: 3,
-                    backgroundColor: "#F1F5F9",
-                    overflow: "hidden",
-                  }}
-                >
-                  <View
-                    style={{
-                      width: dept.percent || "0%",
-                      height: "100%",
-                      backgroundColor: "#2563EB",
-                    }}
-                  />
-                </View>
-              </View>
-            ))}
-          </Card>
-        </>
-      )}
-
-      {/* ===================================================== */}
-      {/* BIRTHDAYS */}
-      {/* ===================================================== */}
-
-      {birthdays.length > 0 && (
-        <>
-          <SectionTitle>Birthdays</SectionTitle>
-
-          <Card>
-            {birthdays.slice(0, 4).map((person, index) => (
-              <View
-                key={person.id || person.name}
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  marginBottom: index === Math.min(birthdays.length, 4) - 1 ? 0 : 14,
-                }}
-              >
-                {person.profileImage ? (
-                  <Image
-                    source={{ uri: person.profileImage }}
-                    style={{
-                      width: 40,
-                      height: 40,
-                      borderRadius: 20,
-                      backgroundColor: "#F1F5F9",
-                    }}
-                  />
-                ) : (
-                  <View
-                    style={{
-                      width: 40,
-                      height: 40,
-                      borderRadius: 20,
-                      backgroundColor: "#FFFBEB",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  >
-                    <Text
-                      style={{
-                        color: "#D97706",
-                        fontSize: 15,
-                        fontWeight: "800",
-                      }}
-                    >
-                      {(person.name || "?").charAt(0).toUpperCase()}
-                    </Text>
-                  </View>
-                )}
-
-                <View style={{ flex: 1, marginLeft: 12 }}>
-                  <Text
-                    style={{
-                      color: "#0F172A",
-                      fontSize: 13,
-                      fontWeight: "800",
-                    }}
-                    numberOfLines={1}
-                  >
-                    {person.name}
-                  </Text>
-
-                  <Text
-                    style={{
-                      color: "#94A3B8",
-                      fontSize: 11,
-                      fontWeight: "600",
-                      marginTop: 2,
-                    }}
-                    numberOfLines={1}
-                  >
-                    {person.designation || person.role || "Employee"}
-                  </Text>
-                </View>
-
-                <Text style={{ fontSize: 18 }}>🎂</Text>
-              </View>
-            ))}
-          </Card>
-        </>
-      )}
-
-      {/* ===================================================== */}
-      {/* UPCOMING HOLIDAYS */}
-      {/* ===================================================== */}
-
-      {upcoming.length > 0 && (
-        <>
-          <SectionTitle
-            action="See all"
-            onAction={() => onNavigate("more", "holidays")}
-          >
-            Upcoming holidays
-          </SectionTitle>
-
-          {upcoming.map((holiday) => {
-            const start = new Date(holiday.startDate);
-
-            return (
-              <Card key={holiday._id}>
-                <View
-                  style={{ flexDirection: "row", alignItems: "center" }}
-                >
-                  <View
-                    style={{
-                      width: 48,
-                      borderRadius: 14,
-                      backgroundColor: "#F8FAFC",
-                      borderWidth: 1,
-                      borderColor: "#EEF2F7",
-                      paddingVertical: 7,
-                      alignItems: "center",
-                    }}
-                  >
-                    <Text
-                      style={{
-                        color: "#0F172A",
-                        fontSize: 16,
-                        fontWeight: "800",
-                      }}
-                    >
-                      {start.getDate()}
-                    </Text>
-
-                    <Text
-                      style={{
-                        color: "#94A3B8",
-                        fontSize: 9,
-                        fontWeight: "800",
-                        textTransform: "uppercase",
-                      }}
-                    >
-                      {start.toLocaleDateString("en-GB", { month: "short" })}
-                    </Text>
-                  </View>
-
-                  <View style={{ flex: 1, marginLeft: 14 }}>
-                    <Text
-                      style={{
-                        color: "#0F172A",
-                        fontSize: 13,
-                        fontWeight: "800",
-                      }}
-                      numberOfLines={1}
-                    >
-                      {holiday.name}
-                    </Text>
-
-                    <Text
-                      style={{
-                        color: "#94A3B8",
-                        fontSize: 11,
-                        fontWeight: "600",
-                        marginTop: 2,
-                      }}
-                    >
-                      {formatDate(holiday.startDate)}
-                    </Text>
-                  </View>
-
-                  <IconTile icon="sunny-outline" tone="amber" size={34} />
-                </View>
-              </Card>
-            );
-          })}
-        </>
-      )}
+      <TouchableOpacity activeOpacity={0.85} onPress={() => setUpdateSheetOpen(true)} style={{ minHeight: 54, borderRadius: 14, backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: "#DCE7F8", flexDirection: "row", alignItems: "center", justifyContent: "center", marginTop: 8, marginBottom: 20 }}>
+        <Ionicons name="cloud-download-outline" size={19} color="#2563EB" />
+        <Text style={{ color: "#2563EB", fontSize: 14, fontWeight: "700", marginLeft: 9 }}>Check for updates</Text>
+      </TouchableOpacity>
+      <UpdateSheet visible={updateSheetOpen} onClose={() => setUpdateSheetOpen(false)} />
     </ScrollView>
   );
 }

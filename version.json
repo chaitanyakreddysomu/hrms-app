@@ -1,8 +1,8 @@
 {
-  "latestVersion": "1.2.2",
-  "downloadUrl": "https://github.com/chaitanyakreddysomu/hrms-app/releases/download/v1.2.2/ics-hrms-v1.2.2.apk",
-  "changelog": "v1.2.2 - Small UI tweaks",
+  "latestVersion": "1.2.5",
+  "downloadUrl": "https://github.com/chaitanyakreddysomu/hrms-app/releases/download/v1.2.5/ics-hrms-v1.2.5.apk",
+  "changelog": "v1.2.5 - Updated HR dashboard",
   "features": [
-    "Small UI tweaks"
+    "Updated HR dashboard"
   ]
 }

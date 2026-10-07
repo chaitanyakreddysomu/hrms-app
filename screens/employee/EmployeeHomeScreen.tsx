@@ -44,6 +44,15 @@ interface Props {
   onNavigate: (tab: string, page?: string) => void;
   profileImage?: string;
   unread?: number;
+  attendancePath?: string;
+  holidaysPath?: string;
+  payslipsPath?: string;
+  payslipProfilePath?: string;
+  punchInPath?: string;
+  punchOutPath?: string;
+  switchLabel?: string;
+  onSwitchView?: () => void;
+  notificationsTab?: string;
 }
 
 interface Holiday {
@@ -59,9 +68,18 @@ export default function EmployeeHomeScreen({
   onNavigate,
   profileImage,
   unread = 0,
+  attendancePath = "/api/attendance/today",
+  holidaysPath = "/api/employee/holidays",
+  payslipsPath = "/api/employee/payslips",
+  payslipProfilePath = "/api/employee/profile",
+  punchInPath = "/api/attendance/punch-in",
+  punchOutPath = "/api/attendance/punch-out",
+  switchLabel,
+  onSwitchView,
+  notificationsTab = "home",
 }: Props) {
   const shellScroll = useShellScroll();
-  const shellTop = useShellContentTop(0, true);
+  const shellTop = useShellContentTop(8, true);
   const { showToast } = useToast();
 
   const [today, setToday] = useState<any>(null);
@@ -93,17 +111,11 @@ const load = useCallback(async () => {
     const currentYear = new Date().getFullYear();
 
     const [todayRes, holidaysRes, payslipsRes] = await Promise.all([
-      apiFetch("/api/attendance/today", session.token),
+      apiFetch(attendancePath, session.token),
 
-      apiFetch(
-        "/api/employee/holidays",
-        session.token
-      ),
+      apiFetch(holidaysPath, session.token),
 
-      apiFetch(
-        `/api/employee/payslips?year=${currentYear}`,
-        session.token
-      ),
+      apiFetch(`${payslipsPath}?year=${currentYear}`, session.token),
     ]);
 
     // ============================================================
@@ -174,7 +186,7 @@ const load = useCallback(async () => {
   } finally {
     setRefreshing(false);
   }
-}, [showToast]);
+}, [attendancePath, holidaysPath, payslipsPath, showToast]);
 
   useEffect(() => {
     load();
@@ -347,7 +359,7 @@ const load = useCallback(async () => {
       if (!session?.token) return;
 
       const res = await apiFetch(
-        punchedIn ? "/api/attendance/punch-out" : "/api/attendance/punch-in",
+        punchedIn ? punchOutPath : punchInPath,
         session.token,
         {
           method: punchedIn ? "PATCH" : "POST",
@@ -482,7 +494,7 @@ const load = useCallback(async () => {
           <Text style={{ color: "#8A8D98", fontSize: 13, fontWeight: "600" }}>Good {new Date().getHours() < 12 ? "morning" : new Date().getHours() < 17 ? "afternoon" : "evening"}</Text>
           <Text style={{ color: "#171A24", fontSize: 22, fontWeight: "800", marginTop: 1 }}>Hello, {name.split(" ")[0]}</Text>
         </View>
-        <TouchableOpacity onPress={() => onNavigate("home", "notifications")} activeOpacity={0.75} style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: "#FFFFFF", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "#F0EFED" }}>
+        <TouchableOpacity onPress={() => onNavigate(notificationsTab, "notifications")} activeOpacity={0.75} style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: "#FFFFFF", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "#F0EFED" }}>
           <Ionicons name="notifications-outline" size={20} color="#202331" />
           {unread > 0 ? (
             <View style={{ position: "absolute", top: 1, right: 1, minWidth: 17, height: 17, paddingHorizontal: 4, borderRadius: 9, backgroundColor: "#EF4444", alignItems: "center", justifyContent: "center" }}>
@@ -491,6 +503,29 @@ const load = useCallback(async () => {
           ) : null}
         </TouchableOpacity>
       </View>
+
+      {switchLabel && onSwitchView && (
+        <TouchableOpacity
+          activeOpacity={0.8}
+          onPress={onSwitchView}
+          style={{
+            alignSelf: "flex-start",
+            flexDirection: "row",
+            alignItems: "center",
+            borderRadius: 18,
+            backgroundColor: "#EFF6FF",
+            paddingHorizontal: 12,
+            paddingVertical: 8,
+            marginTop: -8,
+            marginBottom: 14,
+          }}
+        >
+          <Ionicons name="swap-horizontal-outline" size={16} color="#2563EB" />
+          <Text style={{ color: "#2563EB", fontSize: 11, fontWeight: "800", marginLeft: 6 }}>
+            {switchLabel}
+          </Text>
+        </TouchableOpacity>
+      )}
 
       {/* TODAY */}
 
@@ -860,6 +895,7 @@ const load = useCallback(async () => {
       <UpdateSheet visible={updateSheetOpen} onClose={() => setUpdateSheetOpen(false)} />
       <EmployeePayslipsScreen
         modalOnly
+        profilePath={payslipProfilePath}
         selectedPayslip={selectedPayslip}
         onClose={() => setSelectedPayslip(null)}
       />
