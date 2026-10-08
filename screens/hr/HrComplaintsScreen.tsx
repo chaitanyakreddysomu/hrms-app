@@ -26,6 +26,7 @@ import {
   IconTile,
   Loading,
   SectionTitle,
+  StatTile,
   ToneName,
 } from "./ui";
 import ModalDismiss from "../../components/ModalDismiss";
@@ -221,6 +222,19 @@ export default function HrComplaintsScreen() {
       .some((field) => String(field).toLowerCase().includes(text));
   });
 
+  const openCount = complaints.filter(
+  (complaint) => !complaint.status || complaint.status === "Open"
+).length;
+
+const investigatingCount = complaints.filter(
+  (complaint) => complaint.status === "Investigating"
+).length;
+
+const resolvedCount = complaints.filter(
+  (complaint) => complaint.status === "Resolved"
+).length;
+
+const totalCount = complaints.length;
   return (
     <>
       <ScrollView
@@ -239,9 +253,38 @@ export default function HrComplaintsScreen() {
           />
         }
       >
-        <SectionTitle>
-          {shown.length} {shown.length === 1 ? "complaint" : "complaints"}
-        </SectionTitle>
+        <SectionTitle>Complaint overview</SectionTitle>
+
+<View
+  style={{
+    flexDirection: "row",
+    gap: 10,
+    marginBottom: 18,
+  }}
+>
+  <StatTile
+    icon="alert-circle-outline"
+    label="Open"
+    value={String(openCount)}
+    tone="red"
+  />
+
+  <StatTile
+    icon="time-outline"
+    label="Investigating"
+    value={String(investigatingCount)}
+    tone="amber"
+  />
+
+  <StatTile
+    icon="checkmark-circle-outline"
+    label="Resolved"
+    value={String(resolvedCount)}
+    tone="green"
+  />
+
+
+</View>
 
         {loading ? (
           <Loading label="Loading complaints" />
@@ -259,6 +302,7 @@ export default function HrComplaintsScreen() {
 
             const who =
               complaint.userName || complaint.name || complaint.userId;
+             
 
             return (
               <TouchableOpacity

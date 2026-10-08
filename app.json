@@ -49,13 +49,6 @@
         }
       ],
       [
-        "expo-notifications",
-        {
-          "color": "#2563EB",
-          "defaultChannel": "default"
-        }
-      ],
-      [
         "expo-location",
         {
           "locationAlwaysAndWhenInUsePermission": "ICS HRMS records where you punch in for attendance."

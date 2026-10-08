@@ -71,7 +71,7 @@ export default function HrDashboardScreen({ route, navigation }: Props) {
   /** the bell count, push registration and the tap that opens it */
   const { unread } = useNotifications({
     countPath: "/api/notifications/unread-count",
-    onOpen: () => shellRef.current?.("documents", "notifications"),
+    onOpen: () => shellRef.current?.("requests", "notifications"),
   });
 
   useEffect(() => {
@@ -246,127 +246,126 @@ export default function HrDashboardScreen({ route, navigation }: Props) {
           },
         ],
       },
+
       {
-        key: "documents",
-        label: "Documents",
-        icon: "folder-open-outline",
-        activeIcon: "folder-open",
-        pages: [
-          {
-            key: "documents",
-            title: "Documents",
-            subtitle: "Upload and track",
-            icon: "folder-open-outline",
-            render: ({ reloadKey }) => (
-              <EmployeeDocumentsScreen
-                key={reloadKey}
-                profilePath="/api/hr/profile"
-                uploadPath="/api/hr/documents/upload"
-                previewPath="/api/hr/documents/preview"
-              />
-            ),
-          },
-          {
-            key: "requests",
-            title: "Signup Requests",
-            subtitle: "Waiting for approval",
-            icon: "person-add-outline",
-            hidden: true,
-            highlightBottomTab: false,
-            render: ({ reloadKey }) => <HrRequestsScreen key={reloadKey} />,
-          },
-          {
-            key: "complaints",
-            title: "Complaints",
-            subtitle: "Raised by employees",
-            icon: "chatbubble-ellipses-outline",
-            hidden: true,
-            highlightBottomTab: false,
-            searchable: true,
-            searchPlaceholder: "Search subject or employee",
-            render: ({ reloadKey }) => (
-              <HrComplaintsScreen key={reloadKey} />
-            ),
-          },
-          {
-            key: "payslips",
-            title: "Payslips",
-            subtitle: "Across the team",
-            icon: "receipt-outline",
-            hidden: true,
-            highlightBottomTab: false,
-            render: ({ reloadKey }) => (
-              <HrTeamPayslipsScreen key={reloadKey} />
-            ),
-          },
-          {
-            key: "referrals",
-            title: "Referrals",
-            subtitle: "Candidates put forward",
-            icon: "people-circle-outline",
-            hidden: true,
-            highlightBottomTab: false,
-            searchable: true,
-            searchPlaceholder: "Search name, email or role",
-            render: ({ reloadKey }) => <HrReferralsScreen key={reloadKey} />,
-          },
-          {
-            key: "birthdays",
-            title: "Birthdays",
-            subtitle: "Today and coming up",
-            icon: "gift-outline",
-            hidden: true,
-            highlightBottomTab: false,
-            render: ({ reloadKey }) => <HrBirthdaysScreen key={reloadKey} />,
-          },
-          {
-            key: "holidays",
-            title: "Holidays",
-            subtitle: "Company calendar",
-            icon: "sunny-outline",
-            hidden: true,
-            highlightBottomTab: false,
-            menu: [
-              {
-                key: "addHoliday",
-                label: "Add Holiday",
-                icon: "add-circle-outline",
-                action: "addHoliday",
-              },
-            ],
-            render: ({ reloadKey }) => (
-              <AdminHolidaysScreen
-                key={reloadKey}
-                basePath="/api/hr/holidays"
-                {...childProps()}
-              />
-            ),
-          },
-          {
-            key: "notifications",
-            title: "Notifications",
-            icon: "notifications-outline",
-            hidden: true,
-            highlightBottomTab: false,
-            menu: [
-              {
-                key: "markAllRead",
-                label: "Mark all read",
-                icon: "checkmark-done-outline",
-                action: "markAllRead",
-              },
-              { key: "refresh", label: "Refresh", icon: "refresh-outline" },
-            ],
-            render: ({ reloadKey }) => (
-              <EmployeeNotificationsScreen
-                key={reloadKey}
-                listPath="/api/hr/notifications/my"
-                readPath="/api/hr/notifications"
-              />
-            ),
-          },
-        ],
-      },
+  key: "requests",
+  label: "Requests",
+  icon: "person-add-outline",
+  activeIcon: "person-add",
+  pages: [
+    {
+      key: "requests",
+      title: "Signup Requests",
+      subtitle: "Waiting for approval",
+      icon: "person-add-outline",
+      render: ({ reloadKey }) => (
+        <HrRequestsScreen key={reloadKey} />
+      ),
+    },
+
+    {
+      key: "complaints",
+      title: "Complaints",
+      subtitle: "Raised by employees",
+      icon: "chatbubble-ellipses-outline",
+      hidden: true,
+      highlightBottomTab: false,
+      searchable: true,
+      searchPlaceholder: "Search subject or employee",
+      render: ({ reloadKey }) => (
+        <HrComplaintsScreen key={reloadKey} />
+      ),
+    },
+
+    {
+      key: "payslips",
+      title: "Payslips",
+      subtitle: "Across the team",
+      icon: "receipt-outline",
+      hidden: true,
+      highlightBottomTab: false,
+      render: ({ reloadKey }) => (
+        <HrTeamPayslipsScreen key={reloadKey} />
+      ),
+    },
+
+    {
+      key: "referrals",
+      title: "Referrals",
+      subtitle: "Candidates put forward",
+      icon: "people-circle-outline",
+      hidden: true,
+      highlightBottomTab: false,
+      searchable: true,
+      searchPlaceholder: "Search name, email or role",
+      render: ({ reloadKey }) => <HrReferralsScreen key={reloadKey} />,
+    },
+
+    {
+      key: "birthdays",
+      title: "Birthdays",
+      subtitle: "Today and coming up",
+      icon: "gift-outline",
+      hidden: true,
+      highlightBottomTab: false,
+      render: ({ reloadKey }) => <HrBirthdaysScreen key={reloadKey} />,
+    },
+
+    {
+      key: "holidays",
+      title: "Holidays",
+      subtitle: "Company calendar",
+      icon: "sunny-outline",
+      hidden: true,
+      highlightBottomTab: false,
+      menu: [
+        {
+          key: "addHoliday",
+          label: "Add Holiday",
+          icon: "add-circle-outline",
+          action: "addHoliday",
+        },
+      ],
+      render: ({ reloadKey }) => (
+        <AdminHolidaysScreen
+          key={reloadKey}
+          basePath="/api/hr/holidays"
+          {...childProps()}
+        />
+      ),
+    },
+
+    {
+      key: "notifications",
+      title: "Notifications",
+      icon: "notifications-outline",
+      hidden: true,
+      highlightBottomTab: false,
+      menu: [
+        {
+          key: "markAllRead",
+          label: "Mark all read",
+          icon: "checkmark-done-outline",
+          action: "markAllRead",
+        },
+        {
+          key: "refresh",
+          label: "Refresh",
+          icon: "refresh-outline",
+        },
+      ],
+      render: ({ reloadKey }) => (
+        <EmployeeNotificationsScreen
+          key={reloadKey}
+          listPath="/api/hr/notifications/my"
+          readPath="/api/hr/notifications"
+        />
+      ),
+    },
+  ],
+},
+      
+
     ],
     [user, unread]
   );
@@ -399,6 +398,7 @@ export default function HrDashboardScreen({ route, navigation }: Props) {
                 punchInPath="/api/hr/punch-in"
                 punchOutPath="/api/hr/punch-out"
                 notificationsTab="documents"
+                shortcutIconSize={25}
                 switchLabel="Switch to HR view"
                 onSwitchView={() => setView("hr")}
                 onNavigate={(tab, page) => shellRef.current?.(tab, page)}

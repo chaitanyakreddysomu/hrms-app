@@ -28,6 +28,7 @@ import {
   Loading,
   PrimaryButton,
   SectionTitle,
+  StatTile,
   StatusPill,
   ToneName,
   formatDate,
@@ -224,13 +225,27 @@ export default function HrLeavesScreen() {
     }
   };
 
-  const closeSheet = () => {
-    if (saving) return;
+const closeSheet = () => {
+  if (saving) return;
 
-    setOpen(null);
-    setRejecting(false);
-    setReason("");
-  };
+  setOpen(null);
+  setRejecting(false);
+  setReason("");
+};
+
+const pendingCount = leaves.filter(
+  (leave) => leave.status === "Pending"
+).length;
+
+const approvedCount = leaves.filter(
+  (leave) => leave.status === "Approved"
+).length;
+
+const rejectedCount = leaves.filter(
+  (leave) => leave.status === "Rejected"
+).length;
+
+// const totalCount = leaves.length;
 
   return (
     <>
@@ -250,9 +265,38 @@ export default function HrLeavesScreen() {
           />
         }
       >
-        <SectionTitle>
-          {leaves.length} {leaves.length === 1 ? "request" : "requests"}
-        </SectionTitle>
+        <SectionTitle>Leave overview</SectionTitle>
+
+<View
+  style={{
+    flexDirection: "row",
+    gap: 10,
+    marginBottom: 18,
+  }}
+>
+  <StatTile
+    icon="time-outline"
+    label="Pending"
+    value={String(pendingCount)}
+    tone="amber"
+  />
+
+  <StatTile
+    icon="checkmark-circle-outline"
+    label="Approved"
+    value={String(approvedCount)}
+    tone="green"
+  />
+
+  <StatTile
+    icon="close-circle-outline"
+    label="Rejected"
+    value={String(rejectedCount)}
+    tone="red"
+  />
+
+  
+</View>
 
         {loading ? (
           <Loading label="Loading requests" />

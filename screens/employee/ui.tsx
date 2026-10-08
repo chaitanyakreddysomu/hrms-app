@@ -404,7 +404,7 @@ export function formatDate(value?: string | Date | null) {
 export function formatMoney(value?: number | null) {
   if (value === undefined || value === null) return "N/A";
 
-  return "Rs " + Number(value).toLocaleString("en-IN");
+  return "₹ " + Number(value).toLocaleString("en-IN");
 }
 
 

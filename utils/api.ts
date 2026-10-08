@@ -1,4 +1,5 @@
 import Constants from "expo-constants";
+import { getAuthSession, refreshAccessToken } from "./authStorage";
 
 /** Centralized API utility for the HRMS Mobile App. */
 
@@ -23,6 +24,21 @@ export const API_BASE_URL = __DEV__ ? DEVELOPMENT : DEPLOYED;
 
 const BASE = API_BASE_URL;
 
+/** Keep simultaneous 401 responses from starting multiple refresh requests. */
+let refreshInFlight: Promise<boolean> | null = null;
+
+const refreshOnce = async (): Promise<boolean> => {
+  if (!refreshInFlight) {
+    refreshInFlight = refreshAccessToken()
+      .then((result) => result.ok)
+      .finally(() => {
+        refreshInFlight = null;
+      });
+  }
+
+  return refreshInFlight;
+};
+
 /**
  * Kept for screens that include the API host in error messages.
  */
@@ -46,11 +62,33 @@ export async function apiFetch(
 ): Promise<Response> {
   const url = `${BASE}${path}`;
 
-  const headers: Record<string, string> = {
-    Authorization: `Bearer ${token}`,
-    "Content-Type": "application/json",
-    ...(init.headers as Record<string, string>),
+  const request = (accessToken: string) => {
+    const headers: Record<string, string> = {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+      ...(init.headers as Record<string, string>),
+    };
+
+    return fetch(url, { ...init, headers });
   };
 
-  return fetch(url, { ...init, headers });
+  const response = await request(token);
+  if (response.status !== 401) return response;
+
+  /**
+   * A different request may already have refreshed this caller's
+   * token while its request was in flight. Reuse that token first.
+   */
+  let session = await getAuthSession();
+  if (session?.token && session.token !== token) {
+    return request(session.token);
+  }
+
+  if (!(await refreshOnce())) return response;
+
+  session = await getAuthSession();
+  if (!session?.token) return response;
+
+  /** Retry the original request once using the renewed access token. */
+  return request(session.token);
 }

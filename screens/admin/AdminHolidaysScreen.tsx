@@ -351,70 +351,123 @@ export default function AdminHolidaysScreen({
   // ============================================================
   // HOLIDAY CARD
   // ============================================================
-  const renderHolidayCard = (h: Holiday) => {
-    const color = typeColor(h.type);
-    return (
-      <TouchableOpacity
-        key={h.id}
-        activeOpacity={0.7}
-        onPress={() => setSelectedHoliday(h)}
+ const renderHolidayCard = (h: Holiday) => {
+  const color = typeColor(h.type);
+
+  return (
+    <TouchableOpacity
+      key={h.id}
+      activeOpacity={0.7}
+      onPress={() => setSelectedHoliday(h)}
+      style={{
+        backgroundColor: "#FFFFFF",
+        borderRadius: 20,
+        padding: 14,
+        borderWidth: 1,
+        borderColor: "#EEF2F7",
+        flexDirection: "row",
+        alignItems: "center",
+        marginBottom: 12,
+      }}
+    >
+      {/* FROSTED DATE */}
+      <View
         style={{
-          backgroundColor: "#FFFFFF",
-          borderRadius: 20,
-          padding: 16,
+          width: 54,
+          height: 54,
+          borderRadius: 16,
+          backgroundColor: color.bg,
           borderWidth: 1,
-          borderColor: "#F3F4F6",
-          borderLeftWidth: 4,
-          borderLeftColor: color.solid,
-          flexDirection: "row",
+          borderColor: color.border,
           alignItems: "center",
-          marginBottom: 12,
+          justifyContent: "center",
+          marginRight: 14,
+
+          // subtle glass effect
+          opacity: 0.92,
         }}
       >
-        <View
+        <Text
           style={{
-            width: 52,
-            height: 52,
-            borderRadius: 14,
-            backgroundColor: color.solid,
-            alignItems: "center",
-            justifyContent: "center",
-            marginRight: 14,
+            color: color.text,
+            fontSize: 19,
+            fontWeight: "800",
+            lineHeight: 21,
           }}
         >
-          <Text style={{ color: "#FFFFFF", fontSize: 18, fontWeight: "800" }}>
-            {h.startDate.getDate()}
-          </Text>
-          <Text style={{ color: "#FFFFFF", fontSize: 9, fontWeight: "700", textTransform: "uppercase" }}>
-            {h.startDate.toLocaleDateString("en-US", { month: "short" })}
-          </Text>
-        </View>
+          {h.startDate.getDate()}
+        </Text>
 
-        <View style={{ flex: 1, marginRight: 12 }}>
-          <Text style={{ color: "#111827", fontWeight: "700", fontSize: 15 }} numberOfLines={1}>
-            {h.name}
-          </Text>
-          <Text style={{ color: "#6B7280", fontSize: 12, marginTop: 3 }} numberOfLines={1}>
-            {formatRange(h)}
-          </Text>
-        </View>
-
-        <View
+        <Text
           style={{
-            paddingHorizontal: 8,
-            paddingVertical: 4,
-            borderRadius: 8,
-            backgroundColor: color.bg,
-            borderWidth: 1,
-            borderColor: color.border,
+            color: color.text,
+            fontSize: 9,
+            fontWeight: "800",
+            textTransform: "uppercase",
+            marginTop: 1,
+            opacity: 0.75,
           }}
         >
-          <Text style={{ fontSize: 10, fontWeight: "800", color: color.text }}>{h.type}</Text>
-        </View>
-      </TouchableOpacity>
-    );
-  };
+          {h.startDate.toLocaleDateString("en-US", {
+            month: "short",
+          })}
+        </Text>
+      </View>
 
+      {/* DETAILS */}
+      <View
+        style={{
+          flex: 1,
+          marginRight: 12,
+        }}
+      >
+        <Text
+          style={{
+            color: "#111827",
+            fontWeight: "700",
+            fontSize: 15,
+          }}
+          numberOfLines={1}
+        >
+          {h.name}
+        </Text>
+
+        <Text
+          style={{
+            color: "#6B7280",
+            fontSize: 12,
+            marginTop: 4,
+          }}
+          numberOfLines={1}
+        >
+          {formatRange(h)}
+        </Text>
+      </View>
+
+      {/* TYPE */}
+      <View
+        style={{
+          paddingHorizontal: 8,
+          paddingVertical: 4,
+          borderRadius: 8,
+          backgroundColor: color.bg,
+          borderWidth: 1,
+          borderColor: color.border,
+        }}
+      >
+        <Text
+          style={{
+            fontSize: 10,
+            fontWeight: "800",
+            color: color.text,
+          }}
+        >
+          {h.type}
+        </Text>
+      </View>
+    </TouchableOpacity>
+  );
+};
   return (
     <SafeAreaView edges={embedded ? [] : undefined} style={{ flex: 1, backgroundColor: "#F9FAFB" }}>
       <StatusBar style="dark" />
@@ -422,17 +475,15 @@ export default function AdminHolidaysScreen({
       {/* HEADER */}
       {!embedded && (
         <View
-          style={{
-            paddingHorizontal: 24,
-            paddingVertical: 16,
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "space-between",
-            backgroundColor: "#FFFFFF",
-            borderBottomWidth: 1,
-            borderBottomColor: "#F3F4F6",
-          }}
-        >
+  style={{
+    paddingHorizontal: 24,
+    paddingTop: embedded ? shellTop : 16,
+    paddingBottom: 16,
+    backgroundColor: "#FFFFFF",
+    borderBottomWidth: 1,
+    borderBottomColor: "#F3F4F6",
+  }}
+>
           <TouchableOpacity
             onPress={() => navigation.goBack()}
             style={{
@@ -472,15 +523,15 @@ export default function AdminHolidaysScreen({
 
       {/* TABS + YEAR */}
       <View
-        style={{
-          paddingHorizontal: 24,
-          paddingTop: 16,
-          paddingBottom: 16,
-          backgroundColor: "#FFFFFF",
-          borderBottomWidth: 1,
-          borderBottomColor: "#F3F4F6",
-        }}
-      >
+  style={{
+    paddingHorizontal: 24,
+    paddingTop: embedded ? shellTop + 16 : 16,
+    paddingBottom: 16,
+    backgroundColor: "#FFFFFF",
+    borderBottomWidth: 1,
+    borderBottomColor: "#F3F4F6",
+  }}
+>
         <View
           style={{
             flexDirection: "row",
@@ -611,12 +662,22 @@ export default function AdminHolidaysScreen({
         </View>
       ) : tab === "calendar" ? (
         <ScrollView
-          {...shellScroll}
-          contentContainerStyle={{ padding: 24, paddingTop: shellTop, paddingBottom: 150 }}
-          refreshControl={
-            <RefreshControl progressViewOffset={shellTop} refreshing={refreshing} onRefresh={onRefresh} tintColor="#2563EB" colors={["#2563EB"]} />
-          }
-        >
+  {...shellScroll}
+  contentContainerStyle={{
+    paddingHorizontal: 24,
+    paddingTop: 12,
+    paddingBottom: 150,
+  }}
+  refreshControl={
+    <RefreshControl
+      progressViewOffset={12}
+      refreshing={refreshing}
+      onRefresh={onRefresh}
+      tintColor="#2563EB"
+      colors={["#2563EB"]}
+    />
+  }
+>
           {/* CALENDAR CARD */}
           <View
             style={{
@@ -692,9 +753,9 @@ export default function AdminHolidaysScreen({
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => renderHolidayCard(item)}
           {...shellScroll}
-          contentContainerStyle={{ padding: 24, paddingTop: shellTop, paddingBottom: 150 }}
+          contentContainerStyle={{ padding: 24, paddingTop: 12, paddingBottom: 150 }}
           refreshControl={
-            <RefreshControl progressViewOffset={shellTop} refreshing={refreshing} onRefresh={onRefresh} tintColor="#2563EB" colors={["#2563EB"]} />
+            <RefreshControl progressViewOffset={12} refreshing={refreshing} onRefresh={onRefresh} tintColor="#2563EB" colors={["#2563EB"]} />
           }
           ListHeaderComponent={() => (
             <Text

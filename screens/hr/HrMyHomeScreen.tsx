@@ -377,7 +377,7 @@ export default function HrMyHomeScreen({ name, onNavigate }: Props) {
                 marginTop: 6,
               }}
             >
-              Hello {name.split(" ")[0]}
+              Hello {name}
             </Text>
           </View>
 

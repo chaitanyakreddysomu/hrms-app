@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from "react";
 import {
+  Animated,
   Image,
   RefreshControl,
   ScrollView,
@@ -13,7 +14,6 @@ import { LinearGradient } from "expo-linear-gradient";
 import * as Location from "expo-location";
 import UpdateSheet from "../../components/UpdateSheet";
 import EmployeePayslipsScreen, { type Payslip } from "./EmployeePayslipsScreen";
-
 import { getAuthSession } from "../../utils/authStorage";
 import { apiFetch } from "../../utils/api";
 import { setOpenShift } from "../../utils/shiftClock";
@@ -53,6 +53,7 @@ interface Props {
   switchLabel?: string;
   onSwitchView?: () => void;
   notificationsTab?: string;
+  shortcutIconSize?: number;
 }
 
 interface Holiday {
@@ -62,6 +63,16 @@ interface Holiday {
   startDate: string;
   endDate: string;
 }
+
+interface EmployeeHomeCacheEntry {
+  today: any;
+  upcomingHoliday: Holiday | null;
+  latestPayslip: Payslip | null;
+  cachedAt: number;
+}
+
+const HOME_CACHE_TTL_MS = 2 * 60 * 1000;
+const employeeHomeCache = new Map<string, EmployeeHomeCacheEntry>();
 
 export default function EmployeeHomeScreen({
   name,
@@ -77,46 +88,210 @@ export default function EmployeeHomeScreen({
   switchLabel,
   onSwitchView,
   notificationsTab = "home",
+  shortcutIconSize = 25,
 }: Props) {
   const shellScroll = useShellScroll();
   const shellTop = useShellContentTop(8, true);
   const { showToast } = useToast();
-
-  const [today, setToday] = useState<any>(null);
+  const cacheKey = `${attendancePath}|${holidaysPath}|${payslipsPath}`;
+  const cachedHome = employeeHomeCache.get(cacheKey);
+  const [employeeDob, setEmployeeDob] = useState<string | null>(null);
+  const [today, setToday] = useState<any>(cachedHome?.today ?? null);
   const [selectedPayslip, setSelectedPayslip] = useState<Payslip | null>(null);
   // const [leaves, setLeaves] = useState<any[]>([]);
   const [updateSheetOpen, setUpdateSheetOpen] = useState(false);
 
   const [refreshing, setRefreshing] = useState(false);
   const [punching, setPunching] = useState(false);
-
+  const [showPunchCelebration, setShowPunchCelebration] = useState(false);
   /** ticks once a second so the worked time counts up on screen */
   const [now, setNow] = useState(Date.now());
 
   const [upcomingHoliday, setUpcomingHoliday] = useState<Holiday | null>(
-  null
-);
+    cachedHome?.upcomingHoliday ?? null
+  );
 
 const [latestPayslip, setLatestPayslip] = useState<Payslip | null>(
-  null
+  cachedHome?.latestPayslip ?? null
 );
 
+// const birthdayToday = isBirthdayToday(employeeDob);
 
-const load = useCallback(async () => {
+
+const punchedIn = !!today?.punchIn;
+const punchedOut = !!today?.punchOut;
+
+const isBirthdayToday = (() => {
+  if (!employeeDob) return false;
+
+  const todayDate = new Date();
+  const dob = new Date(employeeDob);
+
+  if (Number.isNaN(dob.getTime())) return false;
+
+  return (
+    todayDate.getDate() === dob.getDate() &&
+    todayDate.getMonth() === dob.getMonth()
+  );
+})();
+
+
+const showBirthdayCard = isBirthdayToday && !punchedOut;
+
+const celebrationItems: {
+  emoji: string;
+  left: `${number}%`;
+  delay: number;
+  duration: number;
+  size: number;
+}[] = [
+  { emoji: "🎊", left: "5%", delay: 0, duration: 2400, size: 28 },
+  { emoji: "🎉", left: "15%", delay: 180, duration: 2700, size: 26 },
+  { emoji: "🎊", left: "27%", delay: 350, duration: 2300, size: 30 },
+  { emoji: "🎉", left: "39%", delay: 100, duration: 2800, size: 27 },
+  { emoji: "🎊", left: "51%", delay: 450, duration: 2500, size: 29 },
+  { emoji: "🎉", left: "63%", delay: 220, duration: 2700, size: 26 },
+  { emoji: "🎊", left: "75%", delay: 500, duration: 2400, size: 30 },
+  { emoji: "🎉", left: "87%", delay: 300, duration: 2600, size: 27 },
+  { emoji: "🎊", left: "10%", delay: 700, duration: 2800, size: 24 },
+  { emoji: "🎉", left: "33%", delay: 600, duration: 2500, size: 25 },
+  { emoji: "🎊", left: "58%", delay: 800, duration: 2700, size: 24 },
+  { emoji: "🎉", left: "80%", delay: 650, duration: 2600, size: 25 },
+];
+
+const Celebration = () => {
+  const animations = React.useRef(
+    celebrationItems.map(() => new Animated.Value(-70))
+  ).current;
+
+  useEffect(() => {
+    if (!showPunchCelebration) {
+      // Immediately stop everything
+      animations.forEach((animation) => {
+        animation.stopAnimation();
+        animation.setValue(-70);
+      });
+      return;
+    }
+
+    // Reset all animations before starting
+    animations.forEach((animation) => {
+      animation.stopAnimation();
+      animation.setValue(-70);
+    });
+
+    const animationRefs: Animated.CompositeAnimation[] = [];
+
+    celebrationItems.forEach((item, index) => {
+      const animation = Animated.sequence([
+        Animated.delay(item.delay),
+        Animated.timing(animations[index], {
+          toValue: 500,
+          duration: 1800,
+          useNativeDriver: true,
+        }),
+      ]);
+
+      animationRefs.push(animation);
+      animation.start();
+    });
+
+    // Stop celebration completely after 2.5 seconds
+    const timer = setTimeout(() => {
+      animationRefs.forEach((animation) => {
+        animation.stop();
+      });
+
+      animations.forEach((animation) => {
+        animation.stopAnimation();
+        animation.setValue(-70);
+      });
+
+      setShowPunchCelebration(false);
+    }, 2500);
+
+    return () => {
+      clearTimeout(timer);
+
+      animationRefs.forEach((animation) => {
+        animation.stop();
+      });
+
+      animations.forEach((animation) => {
+        animation.stopAnimation();
+        animation.setValue(-70);
+      });
+    };
+  }, [showPunchCelebration]);
+
+  if (!showPunchCelebration) return null;
+
+  return (
+    <View
+      pointerEvents="none"
+      style={{
+        position: "absolute",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        zIndex: 9999,
+        elevation: 9999,
+        overflow: "hidden",
+      }}
+    >
+      {celebrationItems.map((item, index) => (
+        <Animated.Text
+          key={`${item.emoji}-${index}`}
+          style={{
+            position: "absolute",
+            left: item.left,
+            top: 0,
+            fontSize: item.size,
+            transform: [
+              { translateY: animations[index] },
+              {
+                rotate: index % 2 === 0 ? "18deg" : "-18deg",
+              },
+            ],
+          }}
+        >
+          {item.emoji}
+        </Animated.Text>
+      ))}
+    </View>
+  );
+};
+
+const load = useCallback(async (force = false) => {
+  const cached = employeeHomeCache.get(cacheKey);
+  if (!force && cached && Date.now() - cached.cachedAt < HOME_CACHE_TTL_MS) {
+    setToday(cached.today);
+    setUpcomingHoliday(cached.upcomingHoliday);
+    setLatestPayslip(cached.latestPayslip);
+    setRefreshing(false);
+    return;
+  }
+
+
   try {
     const session = await getAuthSession();
 
     if (!session?.token) return;
 
+    let nextToday = cached?.today ?? null;
+    let nextUpcomingHoliday = cached?.upcomingHoliday ?? null;
+    let nextLatestPayslip = cached?.latestPayslip ?? null;
+
     const currentYear = new Date().getFullYear();
 
-    const [todayRes, holidaysRes, payslipsRes] = await Promise.all([
-      apiFetch(attendancePath, session.token),
-
-      apiFetch(holidaysPath, session.token),
-
-      apiFetch(`${payslipsPath}?year=${currentYear}`, session.token),
-    ]);
+  const [todayRes, holidaysRes, payslipsRes, profileRes] =
+  await Promise.all([
+    apiFetch(attendancePath, session.token),
+    apiFetch(holidaysPath, session.token),
+    apiFetch(`${payslipsPath}?year=${currentYear}`, session.token),
+    apiFetch(payslipProfilePath, session.token),
+  ]);
 
     // ============================================================
     // TODAY'S ATTENDANCE
@@ -124,6 +299,7 @@ const load = useCallback(async () => {
 
     if (todayRes.ok) {
       const data = await todayRes.json().catch(() => null);
+      nextToday = data;
       setToday(data);
     }
 
@@ -154,8 +330,10 @@ const load = useCallback(async () => {
               new Date(b.startDate).getTime()
           );
 
-        setUpcomingHoliday(upcoming[0] || null);
+        nextUpcomingHoliday = upcoming[0] || null;
+        setUpcomingHoliday(nextUpcomingHoliday);
       } else {
+        nextUpcomingHoliday = null;
         setUpcomingHoliday(null);
       }
     }
@@ -170,11 +348,28 @@ const load = useCallback(async () => {
       if (Array.isArray(data) && data.length > 0) {
         // Backend returns newest payslip first
         // because it uses .sort({ generatedOn: -1 })
-        setLatestPayslip(data[0]);
+        nextLatestPayslip = data[0];
+        setLatestPayslip(nextLatestPayslip);
       } else {
+        nextLatestPayslip = null;
         setLatestPayslip(null);
       }
     }
+
+    if (todayRes.ok && holidaysRes.ok && payslipsRes.ok) {
+      employeeHomeCache.set(cacheKey, {
+        today: nextToday,
+        upcomingHoliday: nextUpcomingHoliday,
+        latestPayslip: nextLatestPayslip,
+        cachedAt: Date.now(),
+      });
+    }
+
+    if (profileRes.ok) {
+  const profileData = await profileRes.json().catch(() => null);
+
+  setEmployeeDob(profileData?.dob || profileData?.employee?.dob || null);
+}
   } catch (error) {
     console.error("Employee home load error:", error);
 
@@ -186,15 +381,13 @@ const load = useCallback(async () => {
   } finally {
     setRefreshing(false);
   }
-}, [attendancePath, holidaysPath, payslipsPath, showToast]);
+}, [attendancePath, cacheKey, holidaysPath, payslipsPath, showToast]);
 
   useEffect(() => {
     load();
   }, [load]);
 
-  /** the record names them punchIn and punchOut */
-  const punchedIn = !!today?.punchIn;
-  const punchedOut = !!today?.punchOut;
+
 
   /** only run the timer while the day is actually open */
   useEffect(() => {
@@ -350,7 +543,9 @@ const load = useCallback(async () => {
     setPunching(true);
 
     try {
-      const location = await readLocation(!punchedIn);
+      const location = punchedIn
+      ? { lat: 0, lng: 0 }
+      : await readLocation(true);
 
       /** no coordinates means no punch in */
       if (!location) return;
@@ -379,15 +574,24 @@ const load = useCallback(async () => {
         return;
       }
 
-      showToast({
-        type: "success",
-        title: punchedIn ? "Punched Out" : "Punched In",
-        message: punchedIn
-          ? "Your day has been closed."
-          : "Have a good day at work.",
-      });
+showToast({
+  type: "success",
+  title: punchedIn ? "Punched Out" : "Punched In",
+  message: punchedIn
+    ? "Your day has been closed."
+    : "Have a good day at work.",
+});
 
-      load();
+// 🎉 Birthday celebration only after Punch In
+if (!punchedIn && isBirthdayToday) {
+  setShowPunchCelebration(true);
+}
+
+// Refresh attendance immediately after successful punch
+await load(true);
+
+
+
     } catch (error) {
       console.error("Punch error:", error);
 
@@ -429,6 +633,8 @@ const load = useCallback(async () => {
   ];
 
   return (
+    <View style={{ flex: 1 }}>
+    <Celebration />
     <ScrollView
       {...shellScroll}
       showsVerticalScrollIndicator={false}
@@ -445,7 +651,7 @@ const load = useCallback(async () => {
           refreshing={refreshing}
           onRefresh={() => {
             setRefreshing(true);
-            load();
+            load(true);
           }}
           tintColor="#2563EB"
         />
@@ -492,7 +698,7 @@ const load = useCallback(async () => {
 </View>
         <View style={{ flex: 1, marginLeft: 12 }}>
           <Text style={{ color: "#8A8D98", fontSize: 13, fontWeight: "600" }}>Good {new Date().getHours() < 12 ? "morning" : new Date().getHours() < 17 ? "afternoon" : "evening"}</Text>
-          <Text style={{ color: "#171A24", fontSize: 22, fontWeight: "800", marginTop: 1 }}>Hello, {name.split(" ")[0]}</Text>
+          <Text style={{ color: "#171A24", fontSize: 22, fontWeight: "800", marginTop: 1 }} numberOfLines={1}>Hello, {name}</Text>
         </View>
         <TouchableOpacity onPress={() => onNavigate(notificationsTab, "notifications")} activeOpacity={0.75} style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: "#FFFFFF", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "#F0EFED" }}>
           <Ionicons name="notifications-outline" size={20} color="#202331" />
@@ -529,170 +735,253 @@ const load = useCallback(async () => {
 
       {/* TODAY */}
 
+<View
+  style={{
+    borderRadius: 22,
+    marginBottom: 18,
+    shadowColor: "#000000",
+    shadowOffset: { width: 16, height: 100 },
+    shadowOpacity: 0.25,
+    shadowRadius: 50,
+    elevation: 25,
+  }}
+>
+  <LinearGradient
+    colors={
+      showBirthdayCard
+          ? ["#FFB703", "#FB8500", "#FF006E"]
+        : ["#005eff", "#4e8dec", "#0a3d93"]
+    }
+    start={{ x: 0, y: 0 }}
+    end={{ x: 1, y: 1 }}
+    style={{
+      borderRadius: 22,
+      overflow: "hidden",
+      paddingTop: 0,
+      paddingHorizontal: 20,
+      paddingBottom: 20,
+      minHeight: 175,
+      justifyContent: "space-between",
+    }}
+  >
+    {/* Decorative background */}
+    <View
+      pointerEvents="none"
+      style={{
+        ...StyleSheet.absoluteFillObject,
+        overflow: "hidden",
+      }}
+    >
       <View
         style={{
-          borderRadius: 22,
-          marginBottom: 18,
-          shadowColor: "#0B3FAF",
-          shadowOffset: { width: 0, height: 16 },
-          shadowOpacity: 0.34,
-          shadowRadius: 24,
-          elevation: 18,
+          position: "absolute",
+          width: 240,
+          height: 240,
+          borderRadius: 120,
+          top: -132,
+          right: -72,
+          backgroundColor: "rgba(255,255,255,0.09)",
         }}
-      >
-      <LinearGradient
-        colors={["#1765E8", "#2F7BF0", "#1254C8"]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
+      />
+
+      <View
         style={{
-          borderRadius: 22,
-          overflow: "hidden",
-          padding: 20,
-          minHeight: 206,
-          justifyContent: "space-between",
+          position: "absolute",
+          width: 174,
+          height: 174,
+          borderRadius: 87,
+          top: -74,
+          right: -10,
+          borderWidth: 1,
+          borderColor: "rgba(255,255,255,0.18)",
+        }}
+      />
+
+      <View
+        style={{
+          position: "absolute",
+          width: 280,
+          height: 88,
+          borderRadius: 44,
+          top: 118,
+          right: -104,
+          transform: [{ rotate: "-28deg" }],
+          backgroundColor: "rgba(255,255,255,0.07)",
+        }}
+      />
+
+      <View
+        style={{
+          position: "absolute",
+          width: 152,
+          height: 152,
+          borderRadius: 76,
+          bottom: -106,
+          left: -42,
+          backgroundColor: showBirthdayCard
+            ? "rgba(120,53,15,0.10)"
+            : "rgba(8,47,130,0.12)",
+        }}
+      />
+    </View>
+
+    {/* DATE + TITLE */}
+    <View
+      style={{
+        flexDirection: "row",
+        alignItems: "flex-start",
+        justifyContent: "space-between",
+      }}
+    >
+      <View
+        style={{
+          flex: 1,
+          paddingRight: 12,
         }}
       >
-        <View pointerEvents="none" style={{ ...StyleSheet.absoluteFillObject, overflow: "hidden" }}>
-          <View style={{ position: "absolute", width: 240, height: 240, borderRadius: 120, top: -132, right: -72, backgroundColor: "rgba(255,255,255,0.09)" }} />
-          <View style={{ position: "absolute", width: 174, height: 174, borderRadius: 87, top: -74, right: -10, borderWidth: 1, borderColor: "rgba(255,255,255,0.18)" }} />
-          <View style={{ position: "absolute", width: 280, height: 88, borderRadius: 44, top: 118, right: -104, transform: [{ rotate: "-28deg" }], backgroundColor: "rgba(255,255,255,0.07)" }} />
-          <View style={{ position: "absolute", width: 152, height: 152, borderRadius: 76, bottom: -106, left: -42, backgroundColor: "rgba(8,47,130,0.12)" }} />
-        </View>
-        {/* the date on the left, the clock on the right */}
-        <View
+        {/* Date */}
+        <Text
           style={{
-            flexDirection: "row",
-            alignItems: "flex-start",
-            justifyContent: "space-between",
+            color: showBirthdayCard ? "#FFF7ED" : "#DBEAFE",
+            fontSize: 11,
+            fontWeight: "800",
+            letterSpacing: 1.1,
+            textTransform: "uppercase",
           }}
         >
-          <View style={{ flex: 1, paddingRight: 12 }}>
-            <Text
-              style={{
-                color: "#DBEAFE",
-                fontSize: 11,
-                fontWeight: "800",
-                letterSpacing: 1.1,
-                textTransform: "uppercase",
-              }}
-            >
-              {new Date().toLocaleDateString("en-GB", {
-                weekday: "long",
-                day: "2-digit",
-                month: "long",
-              })}
-            </Text>
+          {new Date().toLocaleDateString("en-GB", {
+            weekday: "long",
+            day: "2-digit",
+            month: "long",
+          })}
+        </Text>
 
-            <Text
-              style={{
-                color: "#FFFFFF",
-                fontSize: 22,
-                fontWeight: "800",
-                marginTop: 6,
-              }}
-            >
-              {punchedOut ? "Your workday is complete" : punchedIn ? "Your shift is in progress" : "Your day at a glance"}
-            </Text>
-          </View>
-
-          {!!worked && (
-            <View style={{ alignItems: "flex-end" }}>
-              <Text
-                style={{
-                  color: "#DBEAFE",
-                  fontSize: 10,
-                  fontWeight: "800",
-                  letterSpacing: 1,
-                  textTransform: "uppercase",
-                }}
-              >
-                {punchedOut ? "Total" : "Working"}
-              </Text>
-
-              <Text
-                style={{
-                  color: "#FFFFFF",
-                  fontSize: 22,
-                  fontWeight: "800",
-                  marginTop: 2,
-                  fontVariant: ["tabular-nums"],
-                }}
-              >
-                {worked}
-              </Text>
-            </View>
-          )}
-        </View>
-
-        <View
+        {/* Main title */}
+        <Text
           style={{
-            flexDirection: "row",
-            alignItems: "center",
-            marginTop: 18,
+            color: "#FFFFFF",
+            fontSize: 22,
+            fontWeight: "800",
+            marginTop: 6,
           }}
         >
-          <View style={{ flex: 1, paddingRight: 12 }}>
-            <Text
-              style={{
-                color: "#DBEAFE",
-                fontSize: 11,
-                fontWeight: "700",
-              }}
-            >
-              In {to12Hour(today?.punchIn)}   Out{" "}
-              {to12Hour(today?.punchOut)}
-            </Text>
+          {showBirthdayCard
+            ? "Happy Birthday"
+            : punchedOut
+            ? "Your workday is complete"
+            : punchedIn
+            ? "Your shift is in progress"
+            : "Your day at a glance"}
+        </Text>
+      </View>
 
-            <Text
-              style={{
-                color: "#FFFFFF",
-                fontSize: 13,
-                fontWeight: "700",
-                marginTop: 4,
-              }}
-            >
-              {punchedOut
-                ? "Day complete"
-                : punchedIn
-                ? "You are punched in"
-                : "Ready when you are"}
-            </Text>
-          </View>
-
-          <TouchableOpacity
-            activeOpacity={0.85}
-            onPress={punch}
-            disabled={punching || punchedOut}
+      {/* WORKING / TOTAL TIME */}
+      {!!worked && (
+        <View style={{ alignItems: "flex-end" }}>
+          <Text
             style={{
-              height: 44,
-              paddingHorizontal: 20,
-              borderRadius: 14,
-              backgroundColor: punchedOut
-                ? "rgba(255,255,255,0.25)"
-                : "#FFFFFF",
-              alignItems: "center",
-              justifyContent: "center",
+              color: showBirthdayCard ? "#FFF7ED" : "#DBEAFE",
+              fontSize: 10,
+              fontWeight: "800",
+              letterSpacing: 1,
+              textTransform: "uppercase",
             }}
           >
-            <Text
-              style={{
-                color: punchedOut ? "#FFFFFF" : "#2563EB",
-                fontSize: 13,
-                fontWeight: "800",
-              }}
-            >
-              {punchedOut
-                ? "Done"
-                : punching
-                ? "Please wait"
-                : punchedIn
-                ? "Punch out"
-                : "Punch in"}
-            </Text>
-          </TouchableOpacity>
+            {punchedOut ? "Total" : "Working"}
+          </Text>
+
+          <Text
+            style={{
+              color: "#FFFFFF",
+              fontSize: 22,
+              fontWeight: "800",
+              marginTop: 2,
+              fontVariant: ["tabular-nums"],
+            }}
+          >
+            {worked}
+          </Text>
         </View>
-      </LinearGradient>
+      )}
+    </View>
+
+    {/* BOTTOM */}
+    <View
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        marginTop: 18,
+      }}
+    >
+      <View
+        style={{
+          flex: 1,
+          paddingRight: 12,
+        }}
+      >
+        {/* Punch In / Punch Out time */}
+        <Text
+          style={{
+            color: showBirthdayCard ? "#FFF7ED" : "#DBEAFE",
+            fontSize: 11,
+            fontWeight: "700",
+          }}
+        >
+          {`In ${to12Hour(today?.punchIn)}   Out ${to12Hour(
+            today?.punchOut
+          )}`}
+        </Text>
+
+        {/* Status */}
+        <Text
+          style={{
+            color: "#FFFFFF",
+            fontSize: 13,
+            fontWeight: "700",
+            marginTop: 4,
+          }}
+        >
+          {punchedOut
+            ? "Day complete"
+            : punchedIn
+            ? "You are punched in"
+            : "Have a good day at work."}
+        </Text>
       </View>
+
+      {/* Punch button */}
+      {!punchedOut && (
+        <TouchableOpacity
+          activeOpacity={0.85}
+          onPress={punch}
+          disabled={punching}
+          style={{
+            height: 44,
+            paddingHorizontal: 20,
+            borderRadius: 14,
+            backgroundColor: "#FFFFFF",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Text
+            style={{
+              color: showBirthdayCard ? "#DB2777" : "#2563EB",
+              fontSize: 13,
+              fontWeight: "800",
+            }}
+          >
+            {punching
+              ? "Please wait"
+              : punchedIn
+              ? "Punch out"
+              : "Punch in"}
+          </Text>
+        </TouchableOpacity>
+      )}
+    </View>
+  </LinearGradient>
+</View>
 
       {/* <SectionTitle>Your services</SectionTitle> */}
       <View
@@ -716,8 +1005,8 @@ const load = useCallback(async () => {
     {/* Small white icon box */}
     <View
       style={{
-        width: 44,
-        height: 44,
+        width: 60,
+        height: 60,
         backgroundColor: "#FFFFFF",
         borderRadius: 12,
         alignItems: "center",
@@ -733,7 +1022,7 @@ const load = useCallback(async () => {
     >
       <Ionicons
         name={item.icon}
-        size={21}
+        size={shortcutIconSize}
         color="#2563EB"
       />
     </View>
@@ -742,8 +1031,8 @@ const load = useCallback(async () => {
     <Text
       style={{
         color: "#334155",
-        fontSize: 10,
-        fontWeight: "700",
+        fontSize: 11,
+        fontWeight: "800",
         marginTop: 7,
         textAlign: "center",
       }}
@@ -850,25 +1139,51 @@ const load = useCallback(async () => {
         alignItems: "center",
       }}
     >
+      {/* Left icon */}
       <IconTile
         icon="receipt-outline"
-        tone="green"
+        // tone="green"
+        tone={latestPayslip.status === "Paid" ? "green" : "amber"}
+
         size={42}
       />
 
-      <View style={{ flex: 1, marginLeft: 14 }}>
-        <View style={{ flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
-          <Text style={{ color: "#0F172A", fontSize: 14, fontWeight: "800" }}>
-            {latestPayslip.month} {latestPayslip.year}
-          </Text>
-          <StatusPill status={latestPayslip.status} />
-        </View>
-      </View>
+      {/* Month + amount */}
+      <View
+        style={{
+          flex: 1,
+          marginLeft: 14,
+        }}
+      >
+        <Text
+          style={{
+            color: "#0F172A",
+            fontSize: 14,
+            fontWeight: "800",
+          }}
+        >
+          {latestPayslip.month} {latestPayslip.year}
+        </Text>
 
-      <View style={{ alignItems: "flex-end", marginLeft: 8 }}>
-        <Text style={{ color: "#059669", fontSize: 14, fontWeight: "800" }}>
+        <Text
+          style={{
+            color: "#059669",
+            fontSize: 14,
+            fontWeight: "800",
+            marginTop: 0,
+          }}
+        >
           {formatMoney(latestPayslip.netPay)}
         </Text>
+      </View>
+
+      {/* Right status */}
+      <View
+        style={{
+          marginLeft: 8,
+        }}
+      >
+        <StatusPill status={latestPayslip.status} />
       </View>
     </View>
   </Card>
@@ -899,6 +1214,8 @@ const load = useCallback(async () => {
         selectedPayslip={selectedPayslip}
         onClose={() => setSelectedPayslip(null)}
       />
+
     </ScrollView>
+  </View>
   );
 }

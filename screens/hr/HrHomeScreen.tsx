@@ -35,12 +35,15 @@ interface Props {
   onSwitchView: () => void;
 }
 
+
 interface Birthday {
   id?: string;
   name: string;
   role?: string;
   designation?: string;
   profileImage?: string | null;
+  dateOfBirth?: string;
+  dob?: string;
 }
 
 interface Holiday {
@@ -75,12 +78,12 @@ export default function HrHomeScreen({
       const session = await getAuthSession();
       if (!session?.token) return;
 
-      const [dashRes, birthRes, holidayRes] = await Promise.all([
-        apiFetch("/api/hr/dashboard", session.token),
-        apiFetch("/api/birthdays", session.token),
-        apiFetch("/api/employee/holidays", session.token),
-      ]);
-
+     const [dashRes, birthRes, holidayRes, complaintsRes] = await Promise.all([
+  apiFetch("/api/hr/dashboard", session.token),
+  apiFetch("/api/birthdays", session.token),
+  apiFetch("/api/employee/holidays", session.token),
+  apiFetch("/api/hr/employee-complaints?status=Open", session.token),
+]);
       if (!dashRes.ok) {
         showToast({
           type: "error",
@@ -100,6 +103,14 @@ export default function HrHomeScreen({
         const list = await holidayRes.json().catch(() => []);
         setHolidays(Array.isArray(list) ? list : []);
       }
+      if (complaintsRes.ok) {
+        const list = await complaintsRes.json().catch(() => []);
+        const complaints = Array.isArray(list)
+          ? list
+          : list?.complaints || [];
+
+        setOpenComplaints(complaints.length);
+      }
     } catch (error) {
       console.error("HR dashboard error:", error);
 
@@ -118,6 +129,19 @@ export default function HrHomeScreen({
     load();
   }, [load]);
 
+  const todayBirthdays = birthdays.filter((person) => {
+  const value = person.dateOfBirth || person.dob;
+  if (!value) return false;
+
+  const date = new Date(value);
+  const today = new Date();
+
+  return (
+    date.getDate() === today.getDate() &&
+    date.getMonth() === today.getMonth()
+  );
+});
+
   const greeting = useMemo(() => {
     const hour = new Date().getHours();
 
@@ -135,7 +159,7 @@ export default function HrHomeScreen({
 
   /** whoever is neither in nor on leave has not shown up */
   const absent = Math.max(0, total - present - onLeave);
-
+  const [openComplaints, setOpenComplaints] = useState(0);
   const percent = total > 0 ? Math.round((present / total) * 100) : 0;
 
   const upcoming = holidays
@@ -149,6 +173,7 @@ export default function HrHomeScreen({
         new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
     )
     .slice(0, 3);
+
 
   return (
     <ScrollView
@@ -183,11 +208,10 @@ export default function HrHomeScreen({
         </View>
         <View style={{ flex: 1, marginLeft: 12 }}>
           <Text style={{ color: "#8A8D98", fontSize: 13, fontWeight: "600" }}>{greeting}</Text>
-          <Text style={{ color: "#171A24", fontSize: 22, fontWeight: "800", marginTop: 1 }}>
-            Hello, {name.split(" ")[0]}
-          </Text>
+          <Text style={{ color: "#171A24", fontSize: 22, fontWeight: "800", marginTop: 1 }} numberOfLines={1}>Hello, {name}</Text>
+          
         </View>
-        <TouchableOpacity onPress={() => onNavigate("documents", "notifications")} activeOpacity={0.75} style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: "#FFFFFF", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "#F0EFED" }}>
+        <TouchableOpacity onPress={() => onNavigate("requests", "notifications")} activeOpacity={0.75} style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: "#FFFFFF", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "#F0EFED" }}>
           <Ionicons name="notifications-outline" size={20} color="#202331" />
           {unread > 0 ? (
             <View style={{ position: "absolute", top: 1, right: 1, minWidth: 17, height: 17, paddingHorizontal: 4, borderRadius: 9, backgroundColor: "#EF4444", alignItems: "center", justifyContent: "center" }}>
@@ -238,34 +262,97 @@ export default function HrHomeScreen({
         />
 
         <Glance
-          icon="hourglass-outline"
-          label="Awaiting you"
-          value={loading ? "—" : String(stats.pendingApprovals ?? 0)}
+          icon="chatbubble-ellipses-outline"
+          label="Open complaints"
+          value={loading ? "—" : String(openComplaints)}
           tone="amber"
-          onPress={() => onNavigate("leaves")}
+          onPress={() => onNavigate("requests", "complaints")}
         />
       </View>
 
-      {/* HR SHORTCUTS */}
-      <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 2, marginBottom: 12 }}>
-        {[
-          { label: "Holidays", icon: "sunny-outline" as const, page: "holidays" },
-          { label: "Complaints", icon: "chatbubble-ellipses-outline" as const, page: "complaints" },
-          { label: "Payslips", icon: "receipt-outline" as const, page: "payslips" },
-          { label: "Referrals", icon: "people-outline" as const, page: "referrals" },
-          { label: "Signup requests", icon: "person-add-outline" as const, page: "requests" },
-        ].map((item) => (
-          <TouchableOpacity key={item.page} activeOpacity={0.75} onPress={() => onNavigate("documents", item.page)} style={{ width: "19%", alignItems: "center" }}>
-            <View style={{ width: 40, height: 40, backgroundColor: "#FFFFFF", borderRadius: 12, alignItems: "center", justifyContent: "center", shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 4, elevation: 2 }}>
-              <Ionicons name={item.icon} size={20} color="#2563EB" />
-            </View>
-            <Text style={{ color: "#334155", fontSize: 8, fontWeight: "700", marginTop: 6, textAlign: "center" }} numberOfLines={2}>
-              {item.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
+     {/* HR SHORTCUTS */}
+<View
+  style={{
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 2,
+    marginBottom: 12,
+  }}
+>
+  {[
+    {
+      label: "Holidays",
+      icon: "sunny-outline" as const,
+      page: "holidays",
+    },
+    {
+      label: "Payslips",
+      icon: "receipt-outline" as const,
+      page: "payslips",
+    },
+    {
+      label: "Referrals",
+      icon: "people-outline" as const,
+      page: "referrals",
+    },
+    {
+      label: "Complaints",
+      icon: "chatbubble-ellipses-outline" as const,
+      page: "complaints",
+    },
+    
+    
+    
+  ].map((item) => (
+    <TouchableOpacity
+      key={item.label}
+      activeOpacity={0.75}
+      onPress={() => onNavigate("requests", item.page)}
+      style={{
+        width: "19%",
+        alignItems: "center",
+      }}
+    >
+      {/* Small white icon box */}
+      <View
+        style={{
+          width: 60,
+          height: 60,
+          backgroundColor: "#FFFFFF",
+          borderRadius: 12,
+          alignItems: "center",
+          justifyContent: "center",
+
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.08,
+          shadowRadius: 4,
+          elevation: 2,
+        }}
+      >
+        <Ionicons
+          name={item.icon}
+          size={24}
+          color="#2563EB"
+        />
       </View>
 
+      {/* Text outside white box */}
+      <Text
+        style={{
+          color: "#334155",
+          fontSize: 11,
+          fontWeight: "800",
+          marginTop: 7,
+          textAlign: "center",
+        }}
+        numberOfLines={1}
+      >
+        {item.label}
+      </Text>
+    </TouchableOpacity>
+  ))}
+</View>
       {/* ===================================================== */}
       {/* ATTENDANCE OVERVIEW */}
       {/* ===================================================== */}
@@ -368,14 +455,128 @@ export default function HrHomeScreen({
           ))}
         </View>
       </Card>
+      {/* today BIRTHDAYS */}
+      <SectionTitle
+  action="See all"
+  onAction={() => onNavigate("requests", "birthdays")}
+>
+  Today's birthdays
+</SectionTitle>
+      <Card onPress={() => onNavigate("requests", "birthdays")}>
+  {todayBirthdays.length === 0 ? (
+    <Text
+      style={{
+        color: "#94A3B8",
+        fontSize: 12,
+        fontWeight: "600",
+        textAlign: "center",
+        paddingVertical: 4,
+      }}
+    >
+      {loading ? "Checking birthdays…" : "No birthdays today"}
+    </Text>
+  ) : (
+    todayBirthdays.slice(0, 3).map((person, index) => (
+      <View
+        key={person.id || person.name}
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          marginBottom: index === Math.min(todayBirthdays.length, 3) - 1 ? 0 : 14,
+        }}
+      >
+        {person.profileImage ? (
+  <Image
+    source={{ uri: person.profileImage }}
+    style={{
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: "#F1F5F9",
+      borderWidth: 2,
+      borderColor: "#3761d4ff",
+    }}
+  />
+) : (
+  <View
+    style={{
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: "#FFFBEB",
+      alignItems: "center",
+      justifyContent: "center",
+      borderWidth: 2,
+      borderColor: "#3759d4ff",
+    }}
+  >
+    <Text
+      style={{
+        color: "#D97706",
+        fontSize: 15,
+        fontWeight: "800",
+      }}
+    >
+      {(person.name || "?").charAt(0).toUpperCase()}
+    </Text>
+  </View>
+)}
 
+        <View style={{ flex: 1, marginLeft: 12 }}>
+          <Text
+  style={{
+    color: "#0F172A",
+    fontSize: 13,
+    fontWeight: "800",
+  }}
+  numberOfLines={1}
+>
+  {person.name
+    ? person.name.charAt(0).toUpperCase() + person.name.slice(1)
+    : ""}
+</Text>
+
+          <Text
+            style={{
+              color: "#94A3B8",
+              fontSize: 11,
+              fontWeight: "600",
+              marginTop: 2,
+            }}
+            numberOfLines={1}
+          >
+            {person.designation || person.role || "Employee"}
+          </Text>
+        </View>
+
+        {/* <Text style={{ fontSize: 18 }}>🎂</Text> */}
+        <View
+  style={{
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    backgroundColor: "#EFF6FF",
+    alignItems: "center",
+    justifyContent: "center",
+  }}
+>
+  <Ionicons
+    name="gift-outline"
+    size={18}
+    color="#2563EB"
+  />
+</View>
+      </View>
+    ))
+  )}
+</Card>
       {/* ===================================================== */}
       {/* UPCOMING HOLIDAY */}
-      <SectionTitle action="See all" onAction={() => onNavigate("documents", "holidays")}>
+      <SectionTitle action="See all" onAction={() => onNavigate("requests", "holidays")}>
         Upcoming holiday
       </SectionTitle>
       {upcoming[0] ? (
-        <Card onPress={() => onNavigate("documents", "holidays")}>
+        <Card onPress={() => onNavigate("requests", "holidays")}>
           <View style={{ flexDirection: "row", alignItems: "center" }}>
             <IconTile icon="sunny-outline" tone="amber" size={42} />
             <View style={{ flex: 1, marginLeft: 14 }}>
@@ -386,37 +587,12 @@ export default function HrHomeScreen({
           </View>
         </Card>
       ) : (
-        <Card onPress={() => onNavigate("documents", "holidays")}>
+        <Card onPress={() => onNavigate("requests", "holidays")}>
           <Text style={{ color: "#94A3B8", fontSize: 12, fontWeight: "600", textAlign: "center", paddingVertical: 4 }}>No upcoming holidays</Text>
         </Card>
       )}
 
-      {/* UPCOMING BIRTHDAYS */}
-      <SectionTitle action="See all" onAction={() => onNavigate("documents", "birthdays")}>
-        Upcoming birthdays
-      </SectionTitle>
-      <Card onPress={() => onNavigate("documents", "birthdays")}>
-        {birthdays.length === 0 ? (
-          <Text style={{ color: "#94A3B8", fontSize: 12, fontWeight: "600", textAlign: "center", paddingVertical: 4 }}>
-            {loading ? "Checking the calendar…" : "No upcoming birthdays"}
-          </Text>
-        ) : birthdays.slice(0, 3).map((person, index) => (
-          <View key={person.id || person.name} style={{ flexDirection: "row", alignItems: "center", marginBottom: index === Math.min(birthdays.length, 3) - 1 ? 0 : 14 }}>
-            {person.profileImage ? (
-              <Image source={{ uri: person.profileImage }} style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: "#F1F5F9" }} />
-            ) : (
-              <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: "#FFFBEB", alignItems: "center", justifyContent: "center" }}>
-                <Text style={{ color: "#D97706", fontSize: 15, fontWeight: "800" }}>{(person.name || "?").charAt(0).toUpperCase()}</Text>
-              </View>
-            )}
-            <View style={{ flex: 1, marginLeft: 12 }}>
-              <Text style={{ color: "#0F172A", fontSize: 13, fontWeight: "800" }} numberOfLines={1}>{person.name}</Text>
-              <Text style={{ color: "#94A3B8", fontSize: 11, fontWeight: "600", marginTop: 2 }} numberOfLines={1}>{person.designation || person.role || "Employee"}</Text>
-            </View>
-            <Text style={{ fontSize: 18 }}>🎂</Text>
-          </View>
-        ))}
-      </Card>
+
 
       {/* WORKFORCE STATUS */}
       <SectionTitle action="Employees" onAction={() => onNavigate("employees")}>
