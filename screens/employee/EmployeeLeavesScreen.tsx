@@ -28,6 +28,7 @@ import {
   PrimaryButton,
   SectionTitle,
   StatusPill,
+  ToneName,
   formatDate,
 } from "./ui";
 import ModalDismiss from "../../components/ModalDismiss";
@@ -64,6 +65,26 @@ interface Props {
   createPath?: string;
 }
 
+function getLeaveDuration(leave: {
+  startDate: string;
+  endDate: string;
+}) {
+  const start = new Date(leave.startDate);
+  const end = new Date(leave.endDate);
+
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+    return "--";
+  }
+
+  const days =
+    Math.round(
+      (Date.UTC(end.getFullYear(), end.getMonth(), end.getDate()) -
+        Date.UTC(start.getFullYear(), start.getMonth(), start.getDate())) /
+        86400000
+    ) + 1;
+
+  return days === 1 ? "1 day" : `${days} days`;
+}
 export default function EmployeeLeavesScreen({
   listPath = "/api/employee/leaves",
   createPath = "/api/employee/leaves",
@@ -387,100 +408,153 @@ export default function EmployeeLeavesScreen({
               </TouchableOpacity>
             </View>
 
-            {!!open && (
-              <ScrollView showsVerticalScrollIndicator={false}>
-                <View
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    marginBottom: 14,
-                  }}
-                >
-                  <StatusPill status={open.status} />
+           {!!open && (
+  <ScrollView showsVerticalScrollIndicator={false}>
+    
+{/* Leave header */}
+<View
+  style={{
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 16,
+    marginBottom: 16,
+    borderRadius: 20,
+    backgroundColor: "#F8FAFC",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  }}
+>
+  <IconTile
+    icon={
+      open.status === "Approved"
+        ? "checkmark-circle"
+        : open.status === "Rejected"
+        ? "close-circle"
+        : "time"
+    }
+    tone={
+      open.status === "Approved"
+        ? "green"
+        : open.status === "Rejected"
+        ? "red"
+        : "amber"
+    }
+    size={48}
+  />
 
-                  <Text
-                    style={{
-                      color: "#94A3B8",
-                      fontSize: 11,
-                      fontWeight: "600",
-                      marginLeft: 10,
-                    }}
-                  >
-                    {formatDate(open.startDate)} to {formatDate(open.endDate)}
-                  </Text>
-                </View>
+  <View style={{ flex: 1, marginLeft: 14 }}>
+    <Text
+      style={{
+        color: "#0F172A",
+        fontSize: 18,
+        fontWeight: "800",
+      }}
+    >
+      {open.type} leave
+    </Text>
 
-                <Text
-                  style={{
-                    color: "#94A3B8",
-                    fontSize: 11,
-                    fontWeight: "800",
-                    letterSpacing: 1,
-                    textTransform: "uppercase",
-                    marginBottom: 6,
-                  }}
-                >
-                  Reason
-                </Text>
+    <Text
+      style={{
+        color: "#64748B",
+        fontSize: 12,
+        fontWeight: "600",
+        marginTop: 5,
+      }}
+    >
+      Applied on {formatDate(open.appliedOn || open.startDate)}
+    </Text>
+  </View>
 
-                <Text
-                  style={{
-                    color: "#475569",
-                    fontSize: 13,
-                    lineHeight: 20,
-                  }}
-                >
-                  {open.reason}
-                </Text>
+  <StatusPill status={open.status} />
+</View>
 
-                {!!open.rejectionReason && (
-                  <View
-                    style={{
-                      marginTop: 18,
-                      padding: 14,
-                      borderRadius: 16,
-                      backgroundColor: "#FEF2F2",
-                    }}
-                  >
-                    <Text
-                      style={{
-                        color: "#B91C1C",
-                        fontSize: 11,
-                        fontWeight: "800",
-                        letterSpacing: 0.8,
-                        textTransform: "uppercase",
-                        marginBottom: 5,
-                      }}
-                    >
-                      Why it was rejected
-                    </Text>
 
-                    <Text
-                      style={{
-                        color: "#991B1B",
-                        fontSize: 13,
-                        lineHeight: 19,
-                      }}
-                    >
-                      {open.rejectionReason}
-                    </Text>
-                  </View>
-                )}
+    {/* Four detail cards */}
+    <View
+      style={{
+        flexDirection: "row",
+        flexWrap: "wrap",
+        justifyContent: "space-between",
+      }}
+    >
+      <LeaveDetailTile
+        icon="pricetag-outline"
+        tone="blue"
+        label="Leave type"
+        value={open.type || "--"}
+      />
 
-                {!!open.appliedOn && (
-                  <Text
-                    style={{
-                      color: "#CBD5E1",
-                      fontSize: 11,
-                      fontWeight: "600",
-                      marginTop: 18,
-                    }}
-                  >
-                    Applied on {formatDate(open.appliedOn)}
-                  </Text>
-                )}
-              </ScrollView>
-            )}
+      <LeaveDetailTile
+        icon="hourglass-outline"
+        tone="purple"
+        label="Duration"
+        value={getLeaveDuration(open)}
+      />
+
+      <LeaveDetailTile
+        icon="calendar-outline"
+        tone="green"
+        label="Start date"
+        value={formatDate(open.startDate)}
+      />
+
+      <LeaveDetailTile
+        icon="calendar-number-outline"
+        tone="amber"
+        label="End date"
+        value={formatDate(open.endDate)}
+      />
+    </View>
+
+    {/* Reason */}
+    <Text
+      style={{
+        color: "#94A3B8",
+        fontSize: 11,
+        fontWeight: "800",
+        letterSpacing: 1,
+        textTransform: "uppercase",
+        marginTop: 8,
+        marginBottom: 8,
+      }}
+    >
+      Reason
+    </Text>
+
+    <Text style={{ color: "#475569", fontSize: 13, lineHeight: 20 }}>
+      {open.reason || "No reason was provided."}
+    </Text>
+
+    {/* Rejection reason */}
+    {!!open.rejectionReason && (
+      <View
+        style={{
+          marginTop: 18,
+          padding: 14,
+          borderRadius: 16,
+          backgroundColor: "#FEF2F2",
+        }}
+      >
+        <Text
+          style={{
+            color: "#B91C1C",
+            fontSize: 11,
+            fontWeight: "800",
+            marginBottom: 5,
+          }}
+        >
+          Why it was rejected
+        </Text>
+
+        <Text style={{ color: "#991B1B", fontSize: 13, lineHeight: 19 }}>
+          {open.rejectionReason}
+        </Text>
+      </View>
+    )}
+
+  
+  </ScrollView>
+)}
           </View>
         </View>
       </Modal>
@@ -744,5 +818,59 @@ function FormInput({
         style,
       ]}
     />
+  );
+}
+
+
+function LeaveDetailTile({
+  icon,
+  tone,
+  label,
+  value,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  tone: ToneName;
+  label: string;
+  value: string;
+}) {
+  return (
+    <View
+      style={{
+        width: "48.5%",
+        marginBottom: 12,
+        backgroundColor: "#FFFFFF",
+        borderRadius: 20,
+        borderWidth: 1,
+        borderColor: "#E8EDF4",
+        padding: 15,
+        minHeight: 125,
+      }}
+    >
+      <IconTile icon={icon} tone={tone} size={34} />
+
+      <Text
+        style={{
+          color: "#0F172A",
+          fontSize: 15,
+          fontWeight: "800",
+          marginTop: 12,
+        }}
+        numberOfLines={2}
+        adjustsFontSizeToFit
+      >
+        {value}
+      </Text>
+
+      <Text
+        style={{
+          color: "#64748B",
+          fontSize: 11,
+          fontWeight: "600",
+          marginTop: 5,
+        }}
+      >
+        {label}
+      </Text>
+    </View>
   );
 }

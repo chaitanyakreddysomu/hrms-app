@@ -98,6 +98,19 @@ export default function EmployeePayslipsScreen({
     else setOpen(null);
   };
 
+  const detailLabel = {
+  color: "#9CA3AF",
+  fontSize: 9,
+  fontWeight: "700" as const,
+  marginTop: 10,
+  marginBottom: 4,
+};
+
+const detailValue = {
+  color: "#111827",
+  fontSize: 12,
+  fontWeight: "700" as const,
+};
   const shiftYear = (step: number) =>
     setYear((current) => String(Number(current) + step));
 
@@ -730,171 +743,309 @@ export default function EmployeePayslipsScreen({
       ============================================================ */}
 
       <Modal
-        visible={!!activePayslip}
-        transparent
-        animationType="slide"
-        onRequestClose={closePayslip}
-      >
+  visible={!!activePayslip}
+  transparent
+  animationType="slide"
+  onRequestClose={closePayslip}
+>
+  <View
+    style={{
+      flex: 1,
+      justifyContent: "flex-end",
+      backgroundColor: "rgba(0,0,0,0.5)",
+    }}
+  >
+    <Pressable style={{ flex: 1 }} onPress={closePayslip} />
+
+    <View
+      style={{
+        maxHeight: "90%",
+        backgroundColor: "#FFFFFF",
+        borderTopLeftRadius: 28,
+        borderTopRightRadius: 28,
+        overflow: "hidden",
+      }}
+    >
+      {/* Handle */}
+      <View style={{ alignItems: "center", paddingTop: 12, paddingBottom: 4 }}>
         <View
           style={{
-            flex: 1,
-            justifyContent: "flex-end",
-            backgroundColor: "rgba(0,0,0,0.5)",
+            width: 44,
+            height: 5,
+            borderRadius: 3,
+            backgroundColor: "#D1D5DB",
+          }}
+        />
+      </View>
+
+      {/* Header */}
+      <View
+        style={{
+          paddingHorizontal: 20,
+          paddingTop: 12,
+          paddingBottom: 16,
+          borderBottomWidth: 1,
+          borderBottomColor: "#F3F4F6",
+          flexDirection: "row",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}
+      >
+       <View style={{ flex: 1 }}>
+  <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+    <Text style={{ fontSize: 20, fontWeight: "800", color: "#111827" }}>
+      Payslip Details
+    </Text>
+
+    {!!activePayslip && (
+      <StatusPill status={activePayslip.status} />
+    )}
+  </View>
+
+  <Text style={{ fontSize: 13, color: "#6B7280", marginTop: 3 }}>
+    {activePayslip?.month} {activePayslip?.year}
+  </Text>
+</View>
+        <TouchableOpacity
+          onPress={closePayslip}
+          style={{
+            width: 36,
+            height: 36,
+            borderRadius: 18,
+            backgroundColor: "#F3F4F6",
+            alignItems: "center",
+            justifyContent: "center",
           }}
         >
-          <Pressable style={{ flex: 1 }} onPress={closePayslip} />
+          <Ionicons name="close" size={20} color="#4B5563" />
+        </TouchableOpacity>
+      </View>
 
+      {!!activePayslip && (
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ padding: 20, paddingBottom: 36 }}
+        >
+         
+          {/* Net Pay */}
           <View
             style={{
-              maxHeight: "88%",
-              backgroundColor: "#FFFFFF",
-              borderTopLeftRadius: 32,
-              borderTopRightRadius: 32,
-              paddingHorizontal: 20,
-              paddingTop: 12,
-              paddingBottom: 28,
+              padding: 20,
+              backgroundColor: "#ECFDF5",
+              borderRadius: 20,
+              borderWidth: 1,
+              borderColor: "#A7F3D0",
+              marginBottom: 22,
             }}
           >
-            <View style={{ alignItems: "center", marginBottom: 14 }}>
-              <View
-                style={{
-                  width: 44,
-                  height: 5,
-                  borderRadius: 3,
-                  backgroundColor: "#D1D5DB",
-                }}
-              />
+            <Text
+              style={{
+                color: "#059669",
+                fontSize: 10,
+                fontWeight: "800",
+                letterSpacing: 1,
+              }}
+            >
+              NET PAY
+            </Text>
+
+            <Text
+              style={{
+                color: "#065F46",
+                fontSize: 32,
+                fontWeight: "800",
+                marginTop: 5,
+              }}
+            >
+              {formatMoney(activePayslip.netPay)}
+            </Text>
+
+            <Text style={{ color: "#059669", fontSize: 11, marginTop: 5 }}>
+              Generated on {formatDate(activePayslip.generatedOn)}
+            </Text>
+          </View>
+
+          {/* Pay Period */}
+          <SectionTitle>Pay Period</SectionTitle>
+
+          <View style={{ flexDirection: "row", gap: 10, marginBottom: 10 }}>
+            <View
+              style={{
+                flex: 1,
+                padding: 14,
+                backgroundColor: "#F9FAFB",
+                borderRadius: 14,
+                borderWidth: 1,
+                borderColor: "#E5E7EB",
+              }}
+            >
+              <Ionicons name="play-outline" size={20} color="#059669" />
+              <Text style={detailLabel}>START DATE</Text>
+              <Text style={detailValue}>
+                {formatDate(activePayslip.startDate)}
+              </Text>
             </View>
 
             <View
               style={{
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "space-between",
-                marginBottom: 8,
+                flex: 1,
+                padding: 14,
+                backgroundColor: "#F9FAFB",
+                borderRadius: 14,
+                borderWidth: 1,
+                borderColor: "#E5E7EB",
               }}
             >
-              <Text
-                style={{
-                  color: "#0F172A",
-                  fontSize: 20,
-                  fontWeight: "800",
-                }}
-              >
-                {activePayslip?.month} {activePayslip?.year}
+              <Ionicons name="stop-outline" size={20} color="#DC2626" />
+              <Text style={detailLabel}>END DATE</Text>
+              <Text style={detailValue}>
+                {formatDate(activePayslip.endDate)}
               </Text>
+            </View>
+          </View>
 
-              <TouchableOpacity
-                onPress={closePayslip}
-                style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: 18,
-                  backgroundColor: "#F3F4F6",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <Ionicons name="close" size={20} color="#6B7280" />
-              </TouchableOpacity>
+          <View style={{ flexDirection: "row", gap: 10, marginBottom: 22 }}>
+            <View
+              style={{
+                flex: 1,
+                padding: 14,
+                backgroundColor: "#F9FAFB",
+                borderRadius: 14,
+                borderWidth: 1,
+                borderColor: "#E5E7EB",
+              }}
+            >
+              <Ionicons name="calendar-outline" size={20} color="#2563EB" />
+              <Text style={detailLabel}>WORKING DAYS</Text>
+              <Text style={detailValue}>
+                {activePayslip.totalWorkingDays ?? "N/A"}
+              </Text>
             </View>
 
-            {!!activePayslip && (
-              <ScrollView showsVerticalScrollIndicator={false}>
-                {/* the headline figure */}
-                <View
-                  style={{
-                    borderRadius: 24,
-                    backgroundColor: "#ECFDF5",
-                    padding: 18,
-                    alignItems: "center",
-                    marginBottom: 8,
-                  }}
-                >
-                  <Text
-                    style={{
-                      color: "#047857",
-                      fontSize: 11,
-                      fontWeight: "800",
-                      letterSpacing: 1,
-                      textTransform: "uppercase",
-                    }}
-                  >
-                    Net pay
-                  </Text>
-
-                  <Text
-                    style={{
-                      color: "#065F46",
-                      fontSize: 30,
-                      fontWeight: "800",
-                      marginTop: 4,
-                    }}
-                  >
-                    {formatMoney(activePayslip.netPay)}
-                  </Text>
-
-                  <View style={{ marginTop: 8 }}>
-                    <StatusPill status={activePayslip.status} />
-                  </View>
-                </View>
-
-                <SectionTitle>Earnings</SectionTitle>
-
-                <Card>
-                  <Row label="Basic salary" value={formatMoney(activePayslip.basicSalary)} />
-                  <Row
-                    label="Generated on"
-                    value={formatDate(activePayslip.generatedOn)}
-                    last
-                  />
-                </Card>
-
-                <SectionTitle>Deductions</SectionTitle>
-
-                <Card>
-                  <Row label="Provident fund" value={formatMoney(activePayslip.pf)} />
-                  <Row label="ESI" value={formatMoney(activePayslip.esi)} />
-                  <Row label="Professional tax" value={formatMoney(activePayslip.pt)} />
-                  <Row label="TDS" value={formatMoney(activePayslip.tds)} />
-                  <Row
-                    label="Leave deduction"
-                    value={formatMoney(activePayslip.leaveDeduction)}
-                  />
-                  <Row
-                    label="Total deducted"
-                    value={formatMoney(deductions(activePayslip))}
-                    last
-                  />
-                </Card>
-
-                <SectionTitle>Attendance</SectionTitle>
-
-                <Card>
-                  <Row
-                    label="Working days"
-                    value={activePayslip.totalWorkingDays ?? "N/A"}
-                  />
-                  <Row label="Paid days" value={activePayslip.paidDays ?? "N/A"} />
-                  <Row
-                    label="Leaves taken"
-                    value={activePayslip.leavesTaken ?? "N/A"}
-                    last
-                  />
-                </Card>
-
-                <PrimaryButton
-                  label="Download PDF"
-                  icon="download-outline"
-                  onPress={() => download(activePayslip)}
-                  busy={downloading}
-                  style={{ marginTop: 10, marginBottom: 14 }}
-                />
-              </ScrollView>
-            )}
+            <View
+              style={{
+                flex: 1,
+                padding: 14,
+                backgroundColor: "#F9FAFB",
+                borderRadius: 14,
+                borderWidth: 1,
+                borderColor: "#E5E7EB",
+              }}
+            >
+              <Ionicons
+                name="checkmark-done-outline"
+                size={20}
+                color="#7C3AED"
+              />
+              <Text style={detailLabel}>PAID DAYS</Text>
+              <Text style={detailValue}>
+                {activePayslip.paidDays ?? "N/A"}
+              </Text>
+            </View>
           </View>
-        </View>
-      </Modal>
+
+          {/* Earnings */}
+          <SectionTitle>Earnings</SectionTitle>
+
+          <Card>
+            <Row
+              label="Basic salary"
+              value={formatMoney(activePayslip.basicSalary)}
+              last
+            />
+          </Card>
+
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              padding: 14,
+              backgroundColor: "#ECFDF5",
+              borderRadius: 12,
+              borderWidth: 1,
+              borderColor: "#A7F3D0",
+              marginTop: 10,
+              marginBottom: 22,
+            }}
+          >
+            <Text style={{ color: "#065F46", fontSize: 12, fontWeight: "800" }}>
+              Gross Earnings
+            </Text>
+            <Text style={{ color: "#065F46", fontSize: 13, fontWeight: "800" }}>
+              {formatMoney(activePayslip.basicSalary)}
+            </Text>
+          </View>
+
+          {/* Deductions */}
+          <SectionTitle>Deductions</SectionTitle>
+
+          <Card>
+            <Row label="Provident Fund (PF)" value={formatMoney(activePayslip.pf)} />
+            <Row label="ESI" value={formatMoney(activePayslip.esi)} />
+            <Row label="Professional Tax (PT)" value={formatMoney(activePayslip.pt)} />
+            <Row label="TDS" value={formatMoney(activePayslip.tds)} />
+            <Row
+              label="Leave Deduction"
+              value={formatMoney(activePayslip.leaveDeduction)}
+              last
+            />
+          </Card>
+
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              padding: 14,
+              backgroundColor: "#FEF2F2",
+              borderRadius: 12,
+              borderWidth: 1,
+              borderColor: "#FECACA",
+              marginTop: 10,
+              marginBottom: 22,
+            }}
+          >
+            <Text style={{ color: "#991B1B", fontSize: 12, fontWeight: "800" }}>
+              Total Deductions
+            </Text>
+            <Text style={{ color: "#991B1B", fontSize: 13, fontWeight: "800" }}>
+              {formatMoney(deductions(activePayslip))}
+            </Text>
+          </View>
+
+          {/* Attendance */}
+          <SectionTitle>Attendance</SectionTitle>
+
+          <Card>
+            <Row
+              label="Working days"
+              value={activePayslip.totalWorkingDays ?? "N/A"}
+            />
+            <Row
+              label="Paid days"
+              value={activePayslip.paidDays ?? "N/A"}
+            />
+            <Row
+              label="Leaves taken"
+              value={activePayslip.leavesTaken ?? "N/A"}
+              last
+            />
+          </Card>
+{/* Download — only for paid payslips */}
+{activePayslip.status === "Paid" && (
+  <PrimaryButton
+    label="Download PDF"
+    icon="download-outline"
+    onPress={() => download(activePayslip)}
+    busy={downloading}
+    style={{ marginTop: 20, marginBottom: 10 }}
+  />
+)}
+        </ScrollView>
+      )}
+    </View>
+  </View>
+</Modal>
+
     </>
   );
 }

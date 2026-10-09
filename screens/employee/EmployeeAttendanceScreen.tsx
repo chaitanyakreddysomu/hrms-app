@@ -84,16 +84,63 @@ export default function EmployeeAttendanceScreen({ self }: Props = {}) {
   const shellTop = useShellContentTop(16);
   const { showToast } = useToast();
 
-  const now = new Date();
+const currentDate = new Date();
 
-  const [month, setMonth] = useState(now.getMonth());
-  const [year, setYear] = useState(now.getFullYear());
+const [month, setMonth] = useState(currentDate.getMonth());
+const [year, setYear] = useState(currentDate.getFullYear());
 
   const [records, setRecords] = useState<AttendanceRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [open, setOpen] = useState<AttendanceRecord | null>(null);
 
+  const [now, setNow] = useState(Date.now());
+
+const isWorking =
+  !!open?.punchIn &&
+  open.punchIn !== "--" &&
+  (!open.punchOut || open.punchOut === "--");
+
+useEffect(() => {
+  if (!isWorking) return;
+
+  const timer = setInterval(() => setNow(Date.now()), 1000);
+  return () => clearInterval(timer);
+}, [isWorking]);
+
+const getWorkedTime = (record: AttendanceRecord) => {
+  const punchIn = record.punchIn;
+
+  if (!punchIn || punchIn === "--") return "0.00 h";
+
+  const hoursValue = record.totalHours;
+
+  if (record.punchOut && record.punchOut !== "--") {
+    return hoursValue != null
+      ? `${Number(hoursValue).toFixed(2)} h`
+      : "0.00 h";
+  }
+
+  const [h, m, s] = punchIn.split(":").map(Number);
+  if (Number.isNaN(h)) return "0.00 h";
+
+  const start = new Date(record.date || Date.now());
+  if (Number.isNaN(start.getTime())) return "0.00 h";
+
+  start.setHours(h, m || 0, s || 0, 0);
+
+  const diff = Math.max(0, now - start.getTime());
+
+  const hours = Math.floor(diff / 3600000);
+  const minutes = Math.floor((diff % 3600000) / 60000);
+  const seconds = Math.floor((diff % 60000) / 1000);
+
+  return (
+    `${String(hours).padStart(2, "0")}:` +
+    `${String(minutes).padStart(2, "0")}:` +
+    `${String(seconds).padStart(2, "0")}`
+  );
+};
   const load = useCallback(async () => {
     try {
       const session = await getAuthSession();
@@ -326,97 +373,188 @@ export default function EmployeeAttendanceScreen({ self }: Props = {}) {
           </View>
 
           <View
+  style={{
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 20,
+    padding: 16,
+    borderRadius: 20,
+    backgroundColor: "#F8FAFC",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  }}
+>
+  {(() => {
+    const status = open?.status || "Unknown";
+    const [icon, tone] = STATUS_ICON[status] || [
+      "ellipse-outline",
+      "slate",
+    ];
+
+    const date = open ? new Date(open.date) : new Date();
+
+    return (
+      <>
+        <IconTile icon={icon} tone={tone} size={48} />
+
+        <View style={{ flex: 1, marginLeft: 14 }}>
+          <Text
             style={{
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "space-between",
-              marginBottom: 10,
+              color: "#0F172A",
+              fontSize: 19,
+              fontWeight: "800",
             }}
           >
-            <Text
-              style={{ color: "#0F172A", fontSize: 20, fontWeight: "800" }}
-            >
-              {open ? formatDate(open.date) : ""}
-            </Text>
+            {date.toLocaleDateString("en-GB", {
+              day: "2-digit",
+              month: "short",
+              year: "numeric",
+            })}
+          </Text>
 
-            <TouchableOpacity
-              onPress={() => setOpen(null)}
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: 18,
-                backgroundColor: "#F3F4F6",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <Ionicons name="close" size={20} color="#6B7280" />
-            </TouchableOpacity>
-          </View>
+          <Text
+            style={{
+              color: "#64748B",
+              fontSize: 12,
+              fontWeight: "600",
+              marginTop: 4,
+            }}
+          >
+            {date.toLocaleDateString("en-US", {
+              weekday: "long",
+            })}
+          </Text>
+
+          
+        </View>
+
+        <TouchableOpacity
+          onPress={() => setOpen(null)}
+          style={{
+            width: 34,
+            height: 34,
+            borderRadius: 17,
+            backgroundColor: "#E2E8F0",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Ionicons name="close" size={19} color="#475569" />
+        </TouchableOpacity>
+      </>
+    );
+  })()}
+</View>
 
           {!!open && (
             <>
               <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  marginBottom: 6,
-                }}
-              >
-                <IconTile
-                  icon={(STATUS_ICON[open.status || ""] || ["ellipse", "slate"])[0]}
-                  tone={(STATUS_ICON[open.status || ""] || ["ellipse", "slate"])[1]}
-                />
+  style={{
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+  }}
+>
+  <AttendanceDetailTile
+    icon="log-in-outline"
+    tone="green"
+    label="Punch in time"
+    value={open?.punchIn || "--"}
+  />
 
-                <View style={{ flex: 1, marginLeft: 14 }}>
-                  <Text
-                    style={{
-                      color: "#0F172A",
-                      fontSize: 15,
-                      fontWeight: "800",
-                    }}
-                  >
-                    {new Date(open.date).toLocaleDateString("en-GB", {
-                      weekday: "long",
-                    })}
-                  </Text>
+  <AttendanceDetailTile
+    icon="log-out-outline"
+    tone="amber"
+    label="Punch out time"
+    value={open?.punchOut || "--"}
+  />
 
-                  <Text
-                    style={{
-                      color: "#94A3B8",
-                      fontSize: 11,
-                      fontWeight: "600",
-                      marginTop: 3,
-                    }}
-                  >
-                    {open.totalHours
-                      ? `${open.totalHours.toFixed(2)} hours worked`
-                      : "No hours recorded"}
-                  </Text>
-                </View>
+  <AttendanceDetailTile
+    icon="time-outline"
+    tone="blue"
+    label="Total hours"
+    value={open ? getWorkedTime(open) : "--"}
+    live={!!isWorking}
+  />
 
-                <StatusPill status={open.status} />
-              </View>
+  <AttendanceDetailTile
+    icon={(STATUS_ICON[open?.status || ""] || [
+      "ellipse-outline",
+      "slate",
+    ])[0]}
+    tone={(STATUS_ICON[open?.status || ""] || [
+      "ellipse-outline",
+      "slate",
+    ])[1]}
+    label="Attendance status"
+    value={open?.status || "Unknown"}
+  />
+</View>
 
-              <Card>
-                <Row label="Punch in" value={open.punchIn || "Not recorded"} />
-                <Row
-                  label="Punch out"
-                  value={open.punchOut || "Not recorded"}
-                />
-                <Row
-                  label="Total hours"
-                  value={
-                    open.totalHours ? open.totalHours.toFixed(2) : "0.00"
-                  }
-                />
-                <Row label="Status" value={open.status || "Unknown"} last />
-              </Card>
+              
             </>
           )}
         </View>
       </View>
     </Modal>
     </>
+  );
+}
+function AttendanceDetailTile({
+  icon,
+  tone,
+  label,
+  value,
+  live = false,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  tone: ToneName;
+  label: string;
+  value: string;
+  live?: boolean;
+}) {
+  return (
+    <View
+      style={{
+        width: "48.5%",
+        marginBottom: 12,
+        backgroundColor: "#FFFFFF",
+        borderRadius: 20,
+        borderWidth: 1,
+        borderColor: "#E8EDF4",
+        padding: 15,
+        minHeight: 125,
+      }}
+    >
+      <IconTile icon={icon} tone={tone} size={34} />
+
+      <Text
+        style={{
+          color: "#0F172A",
+          fontSize: 16,
+          fontWeight: "800",
+          marginTop: 12,
+          fontVariant: live ? ["tabular-nums"] : undefined,
+        }}
+        numberOfLines={1}
+        adjustsFontSizeToFit
+      >
+        {value}
+      </Text>
+
+      <Text
+        style={{
+          color: "#64748B",
+          fontSize: 11,
+          fontWeight: "600",
+          marginTop: 5,
+        }}
+        numberOfLines={2}
+      >
+        {label}
+        {live ? " · Live" : ""}
+      </Text>
+    </View>
   );
 }

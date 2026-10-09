@@ -349,118 +349,300 @@ export default function EmployeeComplaintsScreen({
               />
             </View>
 
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "space-between",
-                marginBottom: 12,
-              }}
-            >
-              <Text
-                style={{
-                  color: "#0F172A",
-                  fontSize: 20,
-                  fontWeight: "800",
-                  flex: 1,
-                }}
-                numberOfLines={2}
-              >
-                {open?.subject}
-              </Text>
+           
+<View
+  style={{
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 16,
+  }}
+>
+  <View style={{ flex: 1, marginRight: 12 }}>
+    <Text
+      style={{
+        color: "#0F172A",
+        fontSize: 20,
+        fontWeight: "800",
+      }}
+    >
+      Complaint Status
+    </Text>
 
-              <TouchableOpacity
-                onPress={() => setOpen(null)}
-                style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: 18,
-                  backgroundColor: "#F3F4F6",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  marginLeft: 10,
-                }}
-              >
-                <Ionicons name="close" size={20} color="#6B7280" />
-              </TouchableOpacity>
-            </View>
+    {/* <Text
+      style={{
+        color: "#94A3B8",
+        fontSize: 11,
+        fontWeight: "600",
+        marginTop: 5,
+      }}
+    >
+      Applied on {formatDate(open?.date || open?.createdAt)}
+    </Text> */}
+  </View>
+
+  {/* <View style={{ alignItems: "flex-end" }}>
+    <View
+      style={{
+        paddingHorizontal: 10,
+        paddingVertical: 5,
+        borderRadius: 10,
+        borderWidth: 1,
+      }}
+    >
+      <Text
+        style={{
+          fontSize: 10,
+          fontWeight: "800",
+        }}
+      >
+        {open?.status || "Open"}
+      </Text>
+    </View>
+  </View> */}
+
+  <TouchableOpacity
+    onPress={() => !saving && setOpen(null)}
+    style={{
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      backgroundColor: "#F3F4F6",
+      alignItems: "center",
+      justifyContent: "center",
+      marginLeft: 8,
+    }}
+  >
+    <Ionicons name="close" size={20} color="#6B7280" />
+  </TouchableOpacity>
+</View>
 
             {!!open && (
-              <ScrollView showsVerticalScrollIndicator={false}>
-                <View
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    marginBottom: 16,
-                  }}
-                >
-                  <StatusPill status={open.status || "Open"} />
+              
+<ScrollView showsVerticalScrollIndicator={false}>
+  {/* Status and Applied On cards */}
+  <View
+    style={{
+      flexDirection: "row",
+      gap: 12,
+      marginBottom: 20,
+    }}
+  >
+    {/* Status card */}
+    <View
+      style={{
+        flex: 1,
+        padding: 14,
+        borderRadius: 18,
+        backgroundColor: "#FFFFFF",
+        borderWidth: 1,
+        borderColor: "#E5E7EB",
+      }}
+    >
+      <View
+        style={{
+          width: 36,
+          height: 36,
+          borderRadius: 12,
+          backgroundColor: "#EFF6FF",
+          alignItems: "center",
+          justifyContent: "center",
+          marginBottom: 12,
+        }}
+      >
+        <Ionicons
+          name="flag-outline"
+          size={19}
+          color="#2563EB"
+        />
+      </View>
 
-                  <Text
-                    style={{
-                      color: "#94A3B8",
-                      fontSize: 11,
-                      fontWeight: "600",
-                      marginLeft: 10,
-                    }}
-                  >
-                    Raised {formatDate(open.date || open.createdAt)}
-                  </Text>
-                </View>
+      <Text
+        style={{
+          color: "#0F172A",
+          fontSize: 14,
+          fontWeight: "800",
+        }}
+      >
+        {open.status || "Open"}
+      </Text>
 
-                <Text
-                  style={{
-                    color: "#94A3B8",
-                    fontSize: 11,
-                    fontWeight: "800",
-                    letterSpacing: 1,
-                    textTransform: "uppercase",
-                    marginBottom: 6,
-                  }}
-                >
-                  What you reported
-                </Text>
+      <Text
+        style={{
+          color: "#94A3B8",
+          fontSize: 11,
+          fontWeight: "600",
+          marginTop: 4,
+        }}
+      >
+        Status
+      </Text>
+    </View>
 
-                <Text
-                  style={{ color: "#475569", fontSize: 13, lineHeight: 20 }}
-                >
-                  {open.description}
-                </Text>
+    {/* Applied on card */}
+    <View
+      style={{
+        flex: 1,
+        padding: 14,
+        borderRadius: 18,
+        backgroundColor: "#FFFFFF",
+        borderWidth: 1,
+        borderColor: "#E5E7EB",
+      }}
+    >
+      <View
+        style={{
+          width: 36,
+          height: 36,
+          borderRadius: 12,
+          backgroundColor: "#F5F3FF",
+          alignItems: "center",
+          justifyContent: "center",
+          marginBottom: 12,
+        }}
+      >
+        <Ionicons
+          name="calendar-outline"
+          size={19}
+          color="#7C3AED"
+        />
+      </View>
 
-                {!!open.response && (
-                  <View
-                    style={{
-                      marginTop: 18,
-                      padding: 14,
-                      borderRadius: 16,
-                      backgroundColor: "#F0FDF4",
-                    }}
-                  >
-                    <Text
-                      style={{
-                        color: "#047857",
-                        fontSize: 11,
-                        fontWeight: "800",
-                        letterSpacing: 0.8,
-                        textTransform: "uppercase",
-                        marginBottom: 5,
-                      }}
-                    >
-                      HR response
-                    </Text>
+      <Text
+        style={{
+          color: "#0F172A",
+          fontSize: 14,
+          fontWeight: "800",
+        }}
+        numberOfLines={2}
+      >
+        {formatDate(open.date || open.createdAt)}
+      </Text>
 
-                    <Text
-                      style={{
-                        color: "#065F46",
-                        fontSize: 13,
-                        lineHeight: 19,
-                      }}
-                    >
-                      {open.response}
-                    </Text>
-                  </View>
-                )}
-              </ScrollView>
+      <Text
+        style={{
+          color: "#94A3B8",
+          fontSize: 11,
+          fontWeight: "600",
+          marginTop: 4,
+        }}
+      >
+        Applied on
+      </Text>
+    </View>
+  </View>
+
+  {/* Subject */}
+  <View style={{ marginBottom: 18 }}>
+    <Text
+      style={{
+        color: "#94A3B8",
+        fontSize: 11,
+        fontWeight: "800",
+        letterSpacing: 1,
+        textTransform: "uppercase",
+        marginBottom: 8,
+      }}
+    >
+      Subject
+    </Text>
+
+    <View
+      style={{
+        padding: 16,
+        borderRadius: 16,
+        backgroundColor: "#F8FAFC",
+        borderWidth: 1,
+        borderColor: "#E2E8F0",
+      }}
+    >
+      <Text
+        style={{
+          color: "#0F172A",
+          fontSize: 15,
+          fontWeight: "700",
+          lineHeight: 22,
+        }}
+      >
+        {open.subject}
+      </Text>
+    </View>
+  </View>
+
+  {/* Description */}
+  <View style={{ marginBottom: 18 }}>
+    <Text
+      style={{
+        color: "#94A3B8",
+        fontSize: 11,
+        fontWeight: "800",
+        letterSpacing: 1,
+        textTransform: "uppercase",
+        marginBottom: 8,
+      }}
+    >
+      Description
+    </Text>
+
+    <View
+      style={{
+        padding: 16,
+        borderRadius: 16,
+        backgroundColor: "#F8FAFC",
+        borderWidth: 1,
+        borderColor: "#E2E8F0",
+      }}
+    >
+      <Text
+        style={{
+          color: "#475569",
+          fontSize: 13,
+          lineHeight: 21,
+        }}
+      >
+        {open.description}
+      </Text>
+    </View>
+  </View>
+
+  {/* HR response */}
+  {!!open.response && (
+    <View
+      style={{
+        padding: 16,
+        borderRadius: 16,
+        backgroundColor: "#F0FDF4",
+        borderWidth: 1,
+        borderColor: "#BBF7D0",
+        marginBottom: 16,
+      }}
+    >
+      <Text
+        style={{
+          color: "#047857",
+          fontSize: 11,
+          fontWeight: "800",
+          letterSpacing: 0.8,
+          textTransform: "uppercase",
+          marginBottom: 6,
+        }}
+      >
+        HR response
+      </Text>
+
+      <Text
+        style={{
+          color: "#065F46",
+          fontSize: 13,
+          lineHeight: 21,
+        }}
+      >
+        {open.response}
+      </Text>
+    </View>
+  )}
+</ScrollView>
+
             )}
           </View>
         </View>
