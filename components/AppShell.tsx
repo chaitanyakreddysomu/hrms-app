@@ -210,8 +210,11 @@ function Shell({ tabs, initialTabKey, logo, navigateRef, switcher }: Props) {
     currentRef.current = { tab, page, reloadKey };
   });
 
+  const navigationHistory = useRef<
+        { tabKey: string; pageKey: string }[]
+      >([]);
   const goTo = useCallback(
-    (nextTabKey: string, nextPageKey?: string) => {
+    (nextTabKey: string,nextPageKey?: string,skipHistory = false) => {
       const from = currentRef.current;
       const nextTab = tabs.find((t) => t.key === nextTabKey);
       if (!nextTab) return;
@@ -225,12 +228,21 @@ function Shell({ tabs, initialTabKey, logo, navigateRef, switcher }: Props) {
         (p) => p.key === pageKeys[nextTabKey]
       );
 
+      
+
       const resolvedPageKey =
         nextPageKey ||
         (remembered && !remembered.hidden ? remembered.key : null) ||
         nextTab.pages[0].key;
       if (from.tab.key === nextTabKey && from.page.key === resolvedPageKey) {
         return;
+      }
+      // Record the current screen before navigating.
+      if (!skipHistory) {
+        navigationHistory.current.push({
+          tabKey: from.tab.key,
+          pageKey: from.page.key,
+        });
       }
 
       const fromIndex = tabs.findIndex((t) => t.key === from.tab.key);
@@ -267,6 +279,19 @@ function Shell({ tabs, initialTabKey, logo, navigateRef, switcher }: Props) {
     },
     [tabs, pageKeys, progress, bridge]
   );
+
+  const goBack = useCallback(() => {
+  const previous = navigationHistory.current.pop();
+
+  if (!previous) {
+    return false;
+  }
+
+  // Restore the previous screen without adding another history entry.
+  goTo(previous.tabKey, previous.pageKey, true);
+
+  return true;
+}, [goTo]);
 
   useEffect(() => {
     if (navigateRef) navigateRef.current = goTo;
@@ -324,23 +349,19 @@ function Shell({ tabs, initialTabKey, logo, navigateRef, switcher }: Props) {
    * walks back to the first tab */
   useEffect(() => {
     const sub = BackHandler.addEventListener("hardwareBackPress", () => {
-      if (menuOpen) {
-        setMenuOpen(false);
-        return true;
-      }
-      if (searchingRef.current) {
-        closeSearchRef.current();
-        return true;
-      }
-      if (pickerOpen) {
-        togglePicker(false);
-        return true;
-      }
-      if (currentRef.current.tab.key !== tabs[0].key) {
-        goTo(tabs[0].key);
-        return true;
-      }
-      return false;
+      if (goBack()) {
+  return true;
+}
+
+if (
+  currentRef.current.tab.key !== tabs[0].key ||
+  currentRef.current.page.key !== tabs[0].pages[0].key
+) {
+  goTo(tabs[0].key, tabs[0].pages[0].key, true);
+  return true;
+}
+
+return false;
     });
     return () => sub.remove();
   }, [menuOpen, pickerOpen, togglePicker, goTo, tabs]);
@@ -549,14 +570,27 @@ function Shell({ tabs, initialTabKey, logo, navigateRef, switcher }: Props) {
           title={switcherHere ? currentView?.label || page.title : page.title}
           logo={onFirstTab ? logo : undefined}
           onBack={
-            onFirstTab
-              ? undefined
-              : () => {
-                  if (pickerOpen) togglePicker(false);
-                  if (!onFirstPage) return goTo(tab.key, tab.pages[0].key);
-                  goTo(tabs[0].key);
-                }
-          }
+  onFirstTab && navigationHistory.current.length === 0
+    ? undefined
+    : () => {
+        if (pickerOpen) {
+          togglePicker(false);
+          return;
+        }
+
+        if (goBack()) {
+          return;
+        }
+
+        // Fallback when there is no navigation history.
+        if (!onFirstPage) {
+          goTo(tab.key, tab.pages[0].key, true);
+          return;
+        }
+
+        goTo(tabs[0].key, undefined, true);
+      }
+}
           onTitlePress={
             switcherHere
               ? () => {
